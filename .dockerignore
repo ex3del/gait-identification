@@ -1,0 +1,33 @@
+# Git
+.git/
+.gitignore
+
+# Python
+.venv/
+.ruff_cache/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+
+# Build artifacts
+build/
+dist/
+*.egg-info
+
+# Project specific
+outputs/
+logs/
+mlruns/
+mlartifacts/
+
+# IDE
+.idea/
+.vscode/
+
+# Docker
+.dockerignore
+
+# Other
+README.md
