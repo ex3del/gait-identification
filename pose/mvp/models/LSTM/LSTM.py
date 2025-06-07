@@ -6,6 +6,7 @@
 """
 
 import random
+import subprocess
 import traceback
 from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Tuple, Union
@@ -13,12 +14,15 @@ from warnings import warn
 
 import hydra
 import matplotlib.pyplot as plt
+import mlflow
+import mlflow.pytorch
 import numpy as np
 import seaborn as sns
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from hydra import utils
 from joblib import dump
 from omegaconf import DictConfig, OmegaConf
 from sklearn.metrics import (
@@ -55,6 +59,46 @@ except ImportError:
 if TYPE_CHECKING:
     from pathlib import Path
     from typing import Union
+
+
+# === Функции для логгирования ===
+def get_git_commit_id() -> str:
+    """
+    Получает текущий git commit id согласно Task-2-Training-code.txt.
+    """
+    try:
+        commit_id = (
+            subprocess.check_output(
+                ["git", "rev-parse", "HEAD"], cwd=utils.get_original_cwd()
+            )
+            .decode("ascii")
+            .strip()
+        )
+        return commit_id
+    except Exception as e:
+        warn(f"Не удалось получить git commit id: {e}")
+        return "unknown"
+
+
+def setup_mlflow(cfg: DictConfig) -> None:
+    """
+    Настраивает MLflow согласно требованиям Task-2-Training-code.txt.
+    """
+    if not cfg.training.logging.mlflow.enable:
+        return
+
+    try:
+        # Устанавливаем tracking URI согласно требованиям
+        mlflow.set_tracking_uri(cfg.training.logging.mlflow.tracking_uri)
+
+        # Устанавливаем эксперимент
+        mlflow.set_experiment(cfg.training.logging.mlflow.experiment_name)
+
+        print(f"✅ MLflow настроен: {cfg.training.logging.mlflow.tracking_uri}")
+        print(f"✅ Эксперимент: {cfg.training.logging.mlflow.experiment_name}")
+
+    except Exception as e:
+        warn(f"Ошибка настройки MLflow: {e}")
 
 
 # === Функции для Воспроизводимости ===
@@ -293,27 +337,51 @@ def train_model(
     class_names_ordered: List[str] = None,
 ) -> Dict[str, List[float]]:
     """
-    Обучает и оценивает модель LSTM на протяжении заданного числа эпох.
-
-    Args:
-        model (nn.Module): Модель PyTorch для обучения.
-        train_loader (DataLoader): Загрузчик данных для обучения.
-        test_loader (DataLoader): Загрузчик данных для тестирования.
-        criterion (nn.Module): Функция потерь.
-        optimizer (optim.Optimizer): Оптимизатор.
-        cfg (DictConfig): Конфигурация Hydra.
-        device (torch.device): Устройство для вычислений.
-        best_model_path (Path): Путь для сохранения лучшей модели.
-        class_names_ordered (List[str], optional): Имена классов для графиков.
-
-    Returns:
-        Dict[str, List[float]]: История метрик обучения.
+    Обучает модель с MLflow.
     """
-    print("\n--- Начало обучения ---")
+    print("\n--- Начало обучения с MLflow логированием ---")
+
+    # Инициализация MLflow
+    mlflow_enabled = cfg.training.logging.mlflow.enable
+
+    if mlflow_enabled:
+        # Логируем гиперпараметры согласно требованиям (5 баллов)
+        mlflow.log_params(
+            {
+                "model_hidden_size": cfg.training.model.hidden_size,
+                "model_num_layers": cfg.training.model.num_layers,
+                "model_bidirectional": cfg.training.model.use_bidirectional,
+                "lstm_dropout": cfg.training.model.lstm_dropout,
+                "fc_dropout": cfg.training.model.fc_dropout,
+                "batch_size": cfg.training.training.batch_size,
+                "learning_rate": cfg.training.training.learning_rate,
+                "epochs": cfg.training.training.epochs,
+                "sequence_length": cfg.training.data.sequence_length,
+                "train_ratio": cfg.training.data.train_ratio,
+                "optimizer": cfg.training.training.optimizer.name,
+                "loss_function": cfg.training.training.loss.name,
+                "device": str(device),
+            }
+        )
+
+        # Логируем git commit id согласно требованиям
+        git_commit = get_git_commit_id()
+        mlflow.log_param("git_commit_id", git_commit)
+
+        # Устанавливаем теги
+        mlflow.set_tags(
+            {
+                "model_type": "LSTM",
+                "task": "gait_classification",
+                "framework": "pytorch_lightning",
+                "stage": "training",
+            }
+        )
+
     best_loss = float("inf")
     epochs = cfg.training.training.epochs
 
-    # Словарь для хранения истории метрик по эпохам
+    # История метрик (как в оригинале)
     history = {
         "train_loss": [],
         "test_loss": [],
@@ -327,7 +395,6 @@ def train_model(
         "test_recall": [],
     }
 
-    # Словарь для хранения данных последней эпохи (для графиков)
     final_epoch_data = {
         "train_labels": [],
         "train_preds": [],
@@ -337,16 +404,15 @@ def train_model(
         "test_probs": [],
     }
 
-    # Основной цикл по эпохам
+    # Основной цикл обучения (как в оригинале, но с MLflow логированием)
     for epoch in range(epochs):
-        # --- Фаза обучения ---
+        # --- Фаза обучения (как в оригинале) ---
         model.train()
         running_loss = 0.0
         epoch_train_preds = []
         epoch_train_labels = []
         epoch_train_probs = []
 
-        # Итерация по батчам из обучающего загрузчика
         for i, (sequences, labels) in enumerate(train_loader):
             sequences, labels = sequences.to(device), labels.to(device)
 
@@ -358,7 +424,6 @@ def train_model(
 
             running_loss += loss.item()
 
-            # Получаем вероятности и предсказанные классы
             with torch.no_grad():
                 probs = torch.softmax(outputs, dim=1)
                 _, preds = torch.max(outputs, 1)
@@ -366,7 +431,7 @@ def train_model(
                 epoch_train_labels.extend(labels.cpu().numpy())
                 epoch_train_probs.extend(probs.cpu().numpy())
 
-        # Расчет средних метрик для обучающей выборки за эпоху
+        # Расчет метрик обучения
         epoch_loss = running_loss / len(train_loader)
         epoch_acc = accuracy_score(epoch_train_labels, epoch_train_preds)
         epoch_f1 = f1_score(
@@ -379,20 +444,13 @@ def train_model(
             epoch_train_labels, epoch_train_preds, average="weighted", zero_division=0
         )
 
-        # Сохраняем метрики в историю
         history["train_loss"].append(epoch_loss)
         history["train_acc"].append(epoch_acc)
         history["train_f1"].append(epoch_f1)
         history["train_precision"].append(epoch_precision)
         history["train_recall"].append(epoch_recall)
 
-        # Если это последняя эпоха, сохраняем детальные данные
-        if epoch == epochs - 1:
-            final_epoch_data["train_labels"] = epoch_train_labels
-            final_epoch_data["train_preds"] = epoch_train_preds
-            final_epoch_data["train_probs"] = epoch_train_probs
-
-        # --- Фаза Оценки ---
+        # --- Фаза оценки (как в оригинале) ---
         model.eval()
         test_loss = 0.0
         epoch_test_preds = []
@@ -412,7 +470,7 @@ def train_model(
                 epoch_test_labels.extend(labels.cpu().numpy())
                 epoch_test_probs.extend(probs.cpu().numpy())
 
-        # Расчет средних метрик для тестовой выборки за эпоху
+        # Расчет метрик тестирования
         test_epoch_loss = test_loss / len(test_loader)
         test_epoch_acc = accuracy_score(epoch_test_labels, epoch_test_preds)
         test_epoch_f1 = f1_score(
@@ -425,20 +483,40 @@ def train_model(
             epoch_test_labels, epoch_test_preds, average="weighted", zero_division=0
         )
 
-        # Сохраняем метрики в историю
         history["test_loss"].append(test_epoch_loss)
         history["test_acc"].append(test_epoch_acc)
         history["test_f1"].append(test_epoch_f1)
         history["test_precision"].append(test_epoch_precision)
         history["test_recall"].append(test_epoch_recall)
 
-        # Если это последняя эпоха, сохраняем детальные данные
+        # MLflow логирование метрик согласно требованиям (5 баллов)
+        if mlflow_enabled:
+            mlflow.log_metrics(
+                {
+                    "train_loss": epoch_loss,
+                    "train_accuracy": epoch_acc,
+                    "train_f1": epoch_f1,
+                    "train_precision": epoch_precision,
+                    "train_recall": epoch_recall,
+                    "test_loss": test_epoch_loss,
+                    "test_accuracy": test_epoch_acc,
+                    "test_f1": test_epoch_f1,
+                    "test_precision": test_epoch_precision,
+                    "test_recall": test_epoch_recall,
+                },
+                step=epoch,
+            )
+
+        # Сохранение данных последней эпохи
         if epoch == epochs - 1:
+            final_epoch_data["train_labels"] = epoch_train_labels
+            final_epoch_data["train_preds"] = epoch_train_preds
+            final_epoch_data["train_probs"] = epoch_train_probs
             final_epoch_data["test_labels"] = epoch_test_labels
             final_epoch_data["test_preds"] = epoch_test_preds
             final_epoch_data["test_probs"] = epoch_test_probs
 
-        # --- Логирование результатов эпохи ---
+        # Логирование эпохи
         if cfg.training.logging.log_every_epoch:
             print(f"--- Эпоха {epoch+1}/{epochs} ---")
             print(
@@ -449,7 +527,7 @@ def train_model(
             )
             print("-" * 70)
 
-        # --- Сохранение лучшей модели ---
+        # Сохранение лучшей модели
         if cfg.training.saving.save_weights and test_epoch_loss < best_loss:
             best_loss = test_epoch_loss
             try:
@@ -463,13 +541,29 @@ def train_model(
 
     print("--- Обучение завершено ---")
 
-    # --- Построение графиков ---
+    # Построение графиков в plots/ согласно требованиям
     if cfg.training.saving.save_plots:
-        plot_dir = Path(cfg.data.paths.plots_dir) / cfg.training.saving.plots_dirname
+        # Используем абсолютный путь к plots/ в корне репозитория
+        original_cwd = Path(utils.get_original_cwd())
+        plot_dir = (
+            original_cwd / cfg.data.paths.plots_dir / cfg.training.saving.plots_dirname
+        )
+
         print(f"\nПостроение и сохранение графиков в {plot_dir}...")
         save_training_plots(
             history, final_epoch_data, plot_dir, cfg, class_names_ordered
         )
+
+        # Логирование графиков в MLflow согласно требованиям (5 баллов)
+        if mlflow_enabled:
+            try:
+                # Логируем основной график метрик
+                plot_path = plot_dir / "lstm_training_metrics.png"
+                if plot_path.exists():
+                    mlflow.log_artifact(str(plot_path), "plots")
+                    print(f"✅ График загружен в MLflow: {plot_path}")
+            except Exception as e:
+                warn(f"Ошибка загрузки графиков в MLflow: {e}")
 
     return history
 
@@ -678,255 +772,262 @@ def evaluate_model(
 @hydra.main(config_path="../../../../configs", config_name="config", version_base="1.1")
 def main(cfg: DictConfig) -> None:
     """
-    Главная функция скрипта.
-
-    Args:
-        cfg (DictConfig): Конфигурация Hydra со всеми параметрами.
+    Главная функция с MLflow интеграцией.
     """
-    print("=== Конфигурация LSTM обучения ===")
+    print("=== LSTM обучение с MLflow логированием ===")
     print(OmegaConf.to_yaml(cfg.training))
     print("=" * 50)
 
-    print("--- Запуск основного скрипта обучения LSTM ---")
+    # Настройка MLflow
+    setup_mlflow(cfg)
 
     # Определение устройства
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Используется устройство: {device}")
 
-    # Создание путей
-    models_dir = Path(cfg.data.paths.models_dir)
+    # Создание путей согласно требованиям
+    original_cwd = Path(utils.get_original_cwd())
+    models_dir = original_cwd / cfg.data.paths.models_dir  # Корень/models/
     weights_dir = models_dir / "LSTM" / "LSTM_weights"
     weights_dir.mkdir(parents=True, exist_ok=True)
 
     scaler_path = weights_dir / cfg.training.saving.scaler_filename
     best_weights_path = weights_dir / cfg.training.saving.model_filename
 
-    # Вывод параметров запуска
-    print(f"--- Параметры Запуска ---")
-    print(f"Используемое устройство: {device}")
-    print(f"Количество классов: {NUM_CLASSES}")
-    print(f"Длина последовательности: {cfg.training.data.sequence_length}")
-    print(f"Шаг создания последовательностей: {cfg.training.data.stride}")
-    print(f"Признаков на кадр: {cfg.training.data.input_size_per_frame}")
-    print(f"Размер скрытого слоя LSTM: {cfg.training.model.hidden_size}")
-    print(f"Количество слоев LSTM: {cfg.training.model.num_layers}")
-    print(f"Bidirectional LSTM: {cfg.training.model.use_bidirectional}")
-    print(f"Размер батча: {cfg.training.training.batch_size}")
-    print(f"Количество эпох: {cfg.training.training.epochs}")
-    print(f"Скорость обучения: {cfg.training.training.learning_rate}")
-    print(f"Weight Decay: {cfg.training.training.weight_decay}")
-    print(f"LSTM Dropout: {cfg.training.model.lstm_dropout}")
-    print(f"FC Dropout: {cfg.training.model.fc_dropout}")
-    print(f"Соотношение Train/Test: {cfg.training.data.train_ratio*100:.1f}%")
-    print("-" * 25)
+    # Запуск MLflow run согласно требованиям
+    with mlflow.start_run(
+        run_name=f"LSTM_Training_{cfg.training.model.hidden_size}h_{cfg.training.training.epochs}e"
+    ):
+        # Установка seed
+        set_seed(cfg.training.reproducibility.random_seed)
 
-    # Установка seed для воспроизводимости
-    set_seed(cfg.training.reproducibility.random_seed)
+        # === ЗАГРУЗКА И ПОДГОТОВКА ДАННЫХ ===
+        print("\n--- Загрузка и подготовка данных ---")
 
-    # 1. Создание последовательностей данных
-    try:
-        train_seqs, train_lbls, test_seqs, test_lbls = create_sequences_from_files(
-            feature_dir=TRAIN.FEATURES,
-            names_structure=NAMES,
-            class_map=CLASS_NAME_TO_LABEL_MAP,
-            stride=cfg.training.data.stride,
-            seq_length=cfg.training.data.sequence_length,
-            train_ratio=cfg.training.data.train_ratio,
-            input_size_per_frame=cfg.training.data.input_size_per_frame,
-        )
-    except Exception as e:
-        print(f"\nКРИТИЧЕСКАЯ ОШИБКА при создании последовательностей:")
-        traceback.print_exc()
-        return
+        try:
+            # Создание последовательностей из файлов
+            sequences, labels = create_sequences_from_files(
+                data_path=TRAIN,
+                sequence_length=cfg.training.data.sequence_length,
+                stride=cfg.training.data.stride,
+                names=NAMES,
+                class_name_to_label_map=CLASS_NAME_TO_LABEL_MAP,
+            )
 
-    # 2. Предобработка данных (Масштабирование)
-    print("\n--- Предобработка данных (Масштабирование) ---")
-    try:
-        num_train_sequences = len(train_seqs)
-        if num_train_sequences == 0:
-            raise ValueError("Нет обучающих последовательностей для обучения scaler.")
+            print(f"Загружено {len(sequences)} последовательностей")
+            print(f"Форма одной последовательности: {sequences[0].shape}")
 
-        # Объединяем все кадры из всех обучающих последовательностей
-        all_train_frames = torch.cat(train_seqs, dim=0).numpy()
-        print(
-            f"Форма объединенных обучающих кадров для scaler: {all_train_frames.shape}"
-        )
+        except Exception as e:
+            print(f"КРИТИЧЕСКАЯ ОШИБКА при загрузке данных: {e}")
+            traceback.print_exc()
+            return
 
-        # Создаем и обучаем Scaler только на обучающих данных
+        # === НОРМАЛИЗАЦИЯ ДАННЫХ ===
+        print("\n--- Нормализация данных ---")
+
+        # Объединяем все последовательности для обучения StandardScaler
+        all_sequences_np = torch.cat(
+            sequences, dim=0
+        ).numpy()  # (total_frames, features)
+
         scaler = StandardScaler()
-        scaler.fit(all_train_frames)
+        scaler.fit(all_sequences_np)
 
-        # Сохраняем обученный Scaler
+        # Нормализуем каждую последовательность
+        normalized_sequences = []
+        for seq in sequences:
+            seq_np = seq.numpy()
+            seq_normalized = scaler.transform(seq_np)
+            normalized_sequences.append(
+                torch.tensor(seq_normalized, dtype=torch.float32)
+            )
+
+        # Сохраняем scaler
         if cfg.training.saving.save_scaler:
-            dump(scaler, scaler_path)
-            print(f"Scaler обучен и сохранен в {scaler_path}")
+            try:
+                dump(scaler, scaler_path)
+                print(f"StandardScaler сохранен в {scaler_path}")
+            except Exception as e:
+                warn(f"Не удалось сохранить StandardScaler: {e}")
 
-        # Применяем scaler к каждой последовательности
-        scaled_train_seqs = [
-            torch.tensor(scaler.transform(seq.numpy()), dtype=torch.float32)
-            for seq in train_seqs
-        ]
-        scaled_test_seqs = [
-            torch.tensor(scaler.transform(seq.numpy()), dtype=torch.float32)
-            for seq in test_seqs
-        ]
-        print("Масштабирование train и test последовательностей завершено.")
-        del all_train_frames, train_seqs, test_seqs
+        # === РАЗДЕЛЕНИЕ НА ОБУЧАЮЩУЮ И ТЕСТОВУЮ ВЫБОРКИ ===
+        print("\n--- Разделение данных ---")
 
-    except Exception as e:
-        print(f"\nКРИТИЧЕСКАЯ ОШИБКА при масштабировании данных:")
-        traceback.print_exc()
-        return
+        total_sequences = len(normalized_sequences)
+        train_size = int(cfg.training.data.train_ratio * total_sequences)
 
-    # 3. Создание Датасетов и DataLoader'ов
-    print("\n--- Создание Датасетов и DataLoader'ов ---")
-    try:
-        train_dataset = GaitSequenceDataset(scaled_train_seqs, train_lbls)
-        test_dataset = GaitSequenceDataset(scaled_test_seqs, test_lbls)
-        del scaled_train_seqs, train_lbls, scaled_test_seqs, test_lbls
+        # Используем случайное перемешивание с фиксированным seed
+        indices = list(range(total_sequences))
+        random.shuffle(indices)  # Использует установленный seed
 
-        # Создаем генератор для DataLoader
-        g = torch.Generator()
-        g.manual_seed(cfg.training.reproducibility.random_seed)
+        train_indices = indices[:train_size]
+        test_indices = indices[train_size:]
 
-        # Создаем DataLoader'ы с параметрами из конфига
-        train_loader = DataLoader(
-            train_dataset,
-            batch_size=cfg.training.training.batch_size,
-            shuffle=cfg.training.dataloader.shuffle_train,
-            num_workers=cfg.training.dataloader.num_workers,
-            pin_memory=cfg.training.dataloader.pin_memory and device.type == "cuda",
-            generator=g,
-            worker_init_fn=seed_worker,
-        )
-        test_loader = DataLoader(
-            test_dataset,
-            batch_size=cfg.training.training.batch_size,
-            shuffle=cfg.training.dataloader.shuffle_test,
-            num_workers=cfg.training.dataloader.num_workers,
-            pin_memory=cfg.training.dataloader.pin_memory and device.type == "cuda",
-        )
-        print(f"DataLoader'ы созданы. Размер батча: {cfg.training.training.batch_size}")
-        print(f"Количество батчей (train): {len(train_loader)}")
-        print(f"Количество батчей (test): {len(test_loader)}")
+        train_sequences = [normalized_sequences[i] for i in train_indices]
+        train_labels = [labels[i] for i in train_indices]
+        test_sequences = [normalized_sequences[i] for i in test_indices]
+        test_labels = [labels[i] for i in test_indices]
 
-    except Exception as e:
-        print(f"\nКРИТИЧЕСКАЯ ОШИБКА при создании Dataset/DataLoader:")
-        traceback.print_exc()
-        return
+        print(f"Обучающая выборка: {len(train_sequences)} последовательностей")
+        print(f"Тестовая выборка: {len(test_sequences)} последовательностей")
 
-    # 4. Инициализация модели, функции потерь и оптимизатора
-    print("\n--- Инициализация модели, потерь и оптимизатора ---")
-    try:
-        # Создаем модель LSTM с параметрами из конфига
-        model = GaitClassifierLSTM(
-            input_size=cfg.training.data.input_size_per_frame,
-            hidden_size=cfg.training.model.hidden_size,
-            num_layers=cfg.training.model.num_layers,
-            num_classes=NUM_CLASSES,
-            use_bidirectional=cfg.training.model.use_bidirectional,
-            lstm_dropout=cfg.training.model.lstm_dropout,
-            use_ffn_head=cfg.training.model.use_ffn_head,
-            ffn_hidden_size=cfg.training.model.ffn_hidden_size,
-            ffn_dropout=cfg.training.model.fc_dropout,
-        ).to(device)
+        # === СОЗДАНИЕ ДАТАСЕТОВ И DATALOADER'ОВ ===
+        print("\n--- Создание DataLoader'ов ---")
 
-        print("Структура модели:")
-        print(model)
+        try:
+            train_dataset = GaitSequenceDataset(train_sequences, train_labels)
+            test_dataset = GaitSequenceDataset(test_sequences, test_labels)
 
-        # Выбор функции потерь на основе конфига
-        if cfg.training.training.loss.name == "focal":
-            criterion = FocalLoss(
-                alpha=cfg.training.training.loss.focal.alpha,
-                gamma=cfg.training.training.loss.focal.gamma,
+            # Генератор для воспроизводимости
+            g = torch.Generator()
+            g.manual_seed(cfg.training.reproducibility.random_seed)
+
+            train_loader = DataLoader(
+                train_dataset,
+                batch_size=cfg.training.training.batch_size,
+                shuffle=cfg.training.dataloader.shuffle_train,
+                num_workers=cfg.training.dataloader.num_workers,
+                pin_memory=cfg.training.dataloader.pin_memory,
+                worker_init_fn=seed_worker,
+                generator=g,
+            )
+
+            test_loader = DataLoader(
+                test_dataset,
+                batch_size=cfg.training.training.batch_size,
+                shuffle=cfg.training.dataloader.shuffle_test,
+                num_workers=cfg.training.dataloader.num_workers,
+                pin_memory=cfg.training.dataloader.pin_memory,
+                worker_init_fn=seed_worker,
+                generator=g,
+            )
+
+            print(f"DataLoader'ы созданы успешно")
+
+        except Exception as e:
+            print(f"КРИТИЧЕСКАЯ ОШИБКА при создании DataLoader'ов: {e}")
+            traceback.print_exc()
+            return
+
+        # === СОЗДАНИЕ МОДЕЛИ ===
+        print("\n--- Создание модели ---")
+
+        try:
+            model = GaitClassifierLSTM(
+                input_size=cfg.training.data.input_size_per_frame,
+                hidden_size=cfg.training.model.hidden_size,
+                num_layers=cfg.training.model.num_layers,
+                num_classes=NUM_CLASSES,
+                use_bidirectional=cfg.training.model.use_bidirectional,
+                lstm_dropout=cfg.training.model.lstm_dropout,
+                use_ffn_head=cfg.training.model.use_ffn_head,
+                ffn_hidden_size=cfg.training.model.ffn_hidden_size,
+                ffn_dropout=cfg.training.model.fc_dropout,  # Используем fc_dropout
             ).to(device)
-        else:  # cross_entropy по умолчанию
-            criterion = nn.CrossEntropyLoss().to(device)
 
-        print(f"Функция потерь: {criterion.__class__.__name__}")
-
-        # Выбор оптимизатора
-        if cfg.training.training.optimizer.name.lower() == "adamw":
-            optimizer = optim.AdamW(
-                model.parameters(),
-                lr=cfg.training.training.learning_rate,
-                weight_decay=cfg.training.training.weight_decay,
-            )
-        else:
-            optimizer = optim.Adam(
-                model.parameters(),
-                lr=cfg.training.training.learning_rate,
-                weight_decay=cfg.training.training.weight_decay,
+            # Вычисляем общее количество параметров
+            total_params = sum(p.numel() for p in model.parameters())
+            trainable_params = sum(
+                p.numel() for p in model.parameters() if p.requires_grad
             )
 
-        print(f"Оптимизатор: {optimizer.__class__.__name__}")
+            print(f"Модель создана и перемещена на {device}")
+            print(f"Общее количество параметров: {total_params:,}")
+            print(f"Обучаемых параметров: {trainable_params:,}")
 
-    except Exception as e:
-        print(f"\nКРИТИЧЕСКАЯ ОШИБКА при инициализации модели:")
-        traceback.print_exc()
-        return
+        except Exception as e:
+            print(f"КРИТИЧЕСКАЯ ОШИБКА при создании модели: {e}")
+            traceback.print_exc()
+            return
 
-    # 5. Обучение модели
-    try:
-        training_history = train_model(
-            model=model,
-            train_loader=train_loader,
-            test_loader=test_loader,
-            criterion=criterion,
-            optimizer=optimizer,
-            cfg=cfg,
-            device=device,
-            best_model_path=best_weights_path,
-            class_names_ordered=CLASS_NAMES_ORDERED,
-        )
-    except Exception as e:
-        print(f"\nКРИТИЧЕСКАЯ ОШИБКА во время обучения модели:")
-        traceback.print_exc()
-        return
+        # === СОЗДАНИЕ КРИТЕРИЯ ПОТЕРЬ ===
+        print("\n--- Настройка критерия потерь ---")
 
-    # 6. Финальная оценка лучшей модели
-    print("\n--- Загрузка и финальная оценка лучшей модели ---")
-    try:
-        # Создаем новую модель и загружаем лучшие веса
-        best_model = GaitClassifierLSTM(
-            input_size=cfg.training.data.input_size_per_frame,
-            hidden_size=cfg.training.model.hidden_size,
-            num_layers=cfg.training.model.num_layers,
-            num_classes=NUM_CLASSES,
-            use_bidirectional=cfg.training.model.use_bidirectional,
-            lstm_dropout=cfg.training.model.lstm_dropout,
-            use_ffn_head=cfg.training.model.use_ffn_head,
-            ffn_hidden_size=cfg.training.model.ffn_hidden_size,
-            ffn_dropout=cfg.training.model.fc_dropout,
-        ).to(device)
+        try:
+            if cfg.training.training.loss.name == "focal":
+                print(
+                    f"Используется Focal Loss с alpha={cfg.training.training.loss.focal.alpha}, gamma={cfg.training.training.loss.focal.gamma}"
+                )
+                criterion = FocalLoss(
+                    alpha=cfg.training.training.loss.focal.alpha,
+                    gamma=cfg.training.training.loss.focal.gamma,
+                    reduction="mean",
+                ).to(device)
+            else:
+                print("Используется Cross Entropy Loss")
+                criterion = nn.CrossEntropyLoss().to(device)
 
-        best_model.load_state_dict(torch.load(best_weights_path, map_location=device))
-        print(f"Веса лучшей модели загружены из {best_weights_path}")
+        except Exception as e:
+            print(f"КРИТИЧЕСКАЯ ОШИБКА при создании критерия потерь: {e}")
+            traceback.print_exc()
+            return
 
-        # Финальная оценка
-        final_labels, final_preds = evaluate_model(best_model, test_loader, device)
+        # === СОЗДАНИЕ ОПТИМИЗАТОРА ===
+        print("\n--- Настройка оптимизатора ---")
 
-        # Вывод финального отчета
-        print("\n--- Финальный отчет по классификации ---")
-        report_target_names = (
-            [name[:25] for name in CLASS_NAMES_ORDERED] if CLASS_NAMES_ORDERED else None
-        )
-        report = classification_report(
-            final_labels,
-            final_preds,
-            labels=np.arange(NUM_CLASSES),
-            target_names=report_target_names,
-            zero_division=0,
-            digits=3,
-        )
-        print(report)
+        try:
+            if cfg.training.training.optimizer.name.lower() == "adamw":
+                optimizer = optim.AdamW(
+                    model.parameters(),
+                    lr=cfg.training.training.learning_rate,
+                    weight_decay=cfg.training.training.weight_decay,
+                )
+                print(
+                    f"Используется AdamW оптимизатор (lr={cfg.training.training.learning_rate}, weight_decay={cfg.training.training.weight_decay})"
+                )
+            else:
+                optimizer = optim.Adam(
+                    model.parameters(), lr=cfg.training.training.learning_rate
+                )
+                print(
+                    f"Используется Adam оптимизатор (lr={cfg.training.training.learning_rate})"
+                )
 
-    except FileNotFoundError:
-        print(f"Ошибка: Файл с весами не найден: {best_weights_path}")
-    except Exception as e:
-        print(f"\nОшибка при финальной оценке:")
-        traceback.print_exc()
+        except Exception as e:
+            print(f"КРИТИЧЕСКАЯ ОШИБКА при создании оптимизатора: {e}")
+            traceback.print_exc()
+            return
 
-    print("\n--- Скрипт успешно завершен ---")
+        # === ОБУЧЕНИЕ МОДЕЛИ ===
+        print("\n--- Начало обучения ---")
+
+        try:
+            # Обучение модели с MLflow логированием
+            training_history = train_model(
+                model=model,
+                train_loader=train_loader,
+                test_loader=test_loader,
+                criterion=criterion,
+                optimizer=optimizer,
+                cfg=cfg,
+                device=device,
+                best_model_path=best_weights_path,
+                class_names_ordered=CLASS_NAMES_ORDERED,
+            )
+
+            # Логирование финальной модели в MLflow
+            if cfg.training.logging.mlflow.enable:
+                try:
+                    # Логируем модель как артефакт
+                    mlflow.pytorch.log_model(
+                        model, "model", registered_model_name="LSTM_Gait_Classifier"
+                    )
+
+                    # Логируем файлы весов
+                    mlflow.log_artifact(str(best_weights_path), "weights")
+                    mlflow.log_artifact(str(scaler_path), "preprocessing")
+
+                    print("✅ Модель и артефакты загружены в MLflow")
+
+                except Exception as e:
+                    warn(f"Ошибка логирования модели в MLflow: {e}")
+
+        except Exception as e:
+            print(f"\nКРИТИЧЕСКАЯ ОШИБКА во время обучения модели:")
+            traceback.print_exc()
+            return
+
+    print("\n--- Скрипт успешно завершен с MLflow логированием ---")
 
 
 if __name__ == "__main__":

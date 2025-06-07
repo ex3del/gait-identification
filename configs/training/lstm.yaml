@@ -1,8 +1,7 @@
-# Воспроизводимость
-reproducibility:
-  random_seed: 42
+# configs/training/lstm.yaml
+# Конфигурация для LSTM модели
 
-# Параметры данных
+# Параметры данных для LSTM
 data:
   sequence_length: 30 # Длина каждой входной последовательности
   stride: 5 # Шаг, с которым создаются последовательности из кадров файла
@@ -29,7 +28,7 @@ model:
 training:
   # Основные параметры
   batch_size: 32 # Количество последовательностей в одном батче
-  epochs: 10 # Количество полных проходов по обучающему набору
+  epochs: 6 # Количество полных проходов по обучающему набору
   learning_rate: 1e-4 # Скорость обучения оптимизатора
   weight_decay: 0.1 # Коэффициент L2 регуляризации для AdamW
 
@@ -58,16 +57,50 @@ saving:
   save_plots: true # Сохранять ли графики обучения
   save_scaler: true # Сохранять ли StandardScaler
 
-  # Имена файлов (относительно models_dir из data конфига)
+  # Имена файлов
   model_filename: "best_lstm_model.pth"
   scaler_filename: "lstm_scaler.joblib"
   plots_dirname: "lstm_plots"
 
-# Логирование и мониторинг
+# Логирование согласно Task-2-Training-code.txt
 logging:
   log_every_epoch: true # Логировать метрики каждую эпоху
-  save_best_only: true # Сохранять только лучшую модель (по test loss)
+  save_best_only: true # Сохранять только лучшую модель
   verbose: true # Подробный вывод
+
+  # MLflow настройки согласно Task-2-Training-code.txt
+  mlflow:
+    enable: true # Включить MLflow логирование
+    tracking_uri: "http://127.0.0.1:8080" # Адрес MLflow сервера согласно требованиям
+    experiment_name: "LSTM_Gait_Classification" # Название эксперимента
+    run_name_prefix: "LSTM_Training" # Префикс для имени run
+    log_model: true # Логировать модель как артефакт
+    log_artifacts: true # Логировать дополнительные артефакты
+
+    # Настройки логирования согласно требованиям
+    metrics:
+      log_train_loss: true # График потерь обучения
+      log_test_loss: true # График потерь тестирования
+      log_accuracy: true # График точности
+      log_f1_score: true # График F1-меры
+      log_precision: true # График Precision
+      log_recall: true # График Recall
+      log_per_epoch: true # Логировать каждую эпоху
+
+    # Гиперпараметры для логирования согласно требованиям
+    log_params:
+      model_architecture: true # Параметры архитектуры модели
+      training_params: true # Параметры обучения
+      data_params: true # Параметры данных
+      git_commit_id: true # Git commit ID согласно требованиям
+      device_info: true # Информация об устройстве
+
+    # Артефакты для сохранения
+    artifacts:
+      model_weights: true # Веса модели
+      scaler: true # StandardScaler
+      plots: true # Графики обучения
+      config: true # Конфигурационный файл
 
 # Дополнительные настройки архитектуры
 advanced:
@@ -77,3 +110,9 @@ advanced:
     enabled: false # Включить early stopping
     patience: 10 # Количество эпох без улучшения
     min_delta: 1e-4 # Минимальное улучшение
+
+# Воспроизводимость
+reproducibility:
+  random_seed: 42
+  deterministic: true # Детерминированное поведение PyTorch
+  benchmark: false # Отключить benchmark для воспроизводимости

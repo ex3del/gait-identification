@@ -1,10 +1,48 @@
 # configs/config.yaml
-defaults:
-  - data: default
-  - preprocessing: default
-  - training: lstm
-  - _self_
+# Основной конфигурационный файл с defaults
 
-# Глобальные настройки
+defaults:
+  - data: default # Импортирует configs/data/default.yaml как cfg.data.*
+  - preprocessing: default # Импортирует configs/preprocessing/default.yaml как cfg.preprocessing.*
+  - training: lstm # Импортирует configs/training/lstm.yaml как cfg.training.*
+  - _self_ # Текущий файл имеет приоритет
+
+# Глобальные настройки проекта (будет доступно как cfg.project_name, cfg.seed)
 project_name: "pose_estimation"
 seed: 42
+
+# Эксперимент настройки согласно Task-2-Training-code.txt
+experiment:
+  name: "lstm_gait_${training.model.hidden_size}h_${training.training.epochs}e" # Автоматическое имя
+  description: "LSTM classification for gait analysis with MLflow logging"
+  tags:
+    - "lstm"
+    - "gait_classification"
+    - "pytorch"
+    - "mlflow"
+    - "task-2-training-code"
+
+# Настройки Hydra для корректной работы с путями согласно требованиям
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S} # Временные файлы Hydra
+  job:
+    name: lstm_training
+    chdir: false # Не менять рабочую директорию
+
+  # Настройки для sweep'ов (опционально)
+  sweep:
+    dir: outputs/multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}
+
+# Профилирование и оптимизация (опционально)
+performance:
+  enable_profiling: false # Включить профилирование
+  mixed_precision: false # Использовать смешанную точность
+  compile_model: false # Использовать torch.compile (PyTorch 2.0+)
+
+# Валидация конфигурации
+validation:
+  check_data_paths: true # Проверять существование путей к данным
+  check_model_params: true # Валидировать параметры модели
+  check_gpu_memory: true # Проверять достаточность GPU памяти

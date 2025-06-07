@@ -19,6 +19,7 @@ data/rsvid/eval_backup/
 data/rsvid/train_backup/
 !*.dvc
 outputs/
+mlartifacts/
 
 #compiled docs:
 docs/**/*.aux
@@ -53,3 +54,12 @@ src/pose/catboost_info/
 *.pt
 *.pth
 *.onnx
+
+# MLflow согласно Task-2-Training-code.txt
+mlruns/
+plots/
+models/
+
+# Hydra outputs
+outputs/
+.hydra/

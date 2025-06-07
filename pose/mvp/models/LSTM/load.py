@@ -1,13 +1,10 @@
 """
-Модуль для загрузки данных признаков, создания последовательностей и разделения.
+Модуль для загрузки данных признаков, создания последовательностей.
 
 Содержит функции для:
 1. Создания словарей отображения имен классов в метки и обратно.
 2. Загрузки .npy файлов признаков (каждый файл - признаки для кадров одного видео).
 3. Создания перекрывающихся временных последовательностей заданной длины из кадров.
-4. Разделения сгенерированных последовательностей на обучающую и тестовую выборки
-   (разделение происходит *внутри* набора последовательностей, полученных из *каждого*
-   исходного .npy файла).
 """
 
 import pprint
@@ -20,12 +17,7 @@ import torch
 
 from ...paths.paths import NAMES
 
-# --- Константы ---
-TRAIN_RATIO = (
-    0.75  # Доля последовательностей из КАЖДОГО файла, идущая в обучающую выборку
-)
-
-# --- Создание словарей для меток ---
+# --- Создание словарей для меток согласно Task-2-Training-code.txt ---
 try:
     CLASS_NAME_TO_LABEL_MAP: Dict[str, int] = {
         info["class"]: idx for idx, info in enumerate(NAMES) if "class" in info
@@ -53,59 +45,56 @@ except Exception as e:
     pprint.pprint(NAMES[:2])
     exit(1)  # Завершаем выполнение, если не можем создать карту меток
 
-# --- Функция создания последовательностей ---
-
 
 def create_sequences_from_files(
-    feature_dir: Path,
-    names_structure: List[Dict[str, Any]],
-    class_map: Dict[str, int],
+    data_path,  # Теперь принимаем _DataPath объект
+    sequence_length: int,
     stride: int,
-    seq_length: int,
-    train_ratio: float,
-    input_size_per_frame: int,  # Добавлен для проверки размерности
-) -> Tuple[List[torch.Tensor], List[int], List[torch.Tensor], List[int]]:
+    names: List[Dict[str, Any]],
+    class_name_to_label_map: Dict[str, int],
+) -> Tuple[List[torch.Tensor], List[int]]:
     """
-    Загружает .npy файлы признаков, создает перекрывающиеся последовательности
-    и разделяет их на обучающую и тестовую выборки для каждого файла.
+    Загружает .npy файлы признаков и создает перекрывающиеся последовательности.
+
+    Исправленная функция для работы с _DataPath объектом согласно Task-2-Training-code.txt.
 
     Args:
-        feature_dir (Path): Директория с файлами признаков .npy (формат [кадры, признаки]).
-        names_structure (List[Dict]): Структура данных NAMES.
-        class_map (Dict[str, int]): Словарь для отображения имен классов в метки.
-        seq_length (int): Длина создаваемых последовательностей (количество кадров).
-        stirde (int): С каким шагом мы формируем последовательности кадров
-        train_ratio (float): Доля последовательностей из каждого файла для обучения.
-        input_size_per_frame (int): Ожидаемое количество признаков на кадр (для проверки).
+        data_path (_DataPath): Объект _DataPath с путями к данным.
+        sequence_length (int): Длина создаваемых последовательностей (количество кадров).
+        stride (int): Шаг для создания перекрывающихся последовательностей.
+        names (List[Dict]): Структура данных NAMES.
+        class_name_to_label_map (Dict[str, int]): Словарь отображения классов в метки.
 
     Returns:
-        Tuple[List[torch.Tensor], List[int], List[torch.Tensor], List[int]]:
-            Кортеж: (train_sequences, train_labels, test_sequences, test_labels)
-            Каждый элемент в списках *_sequences - это тензор формы [seq_length, input_size_per_frame].
+        Tuple[List[torch.Tensor], List[int]]:
+            Кортеж (sequences, labels) где каждая последовательность имеет форму [seq_length, features].
     """
-    train_sequences: List[torch.Tensor] = []
-    train_labels: List[int] = []
-    test_sequences: List[torch.Tensor] = []
-    test_labels: List[int] = []
+    sequences: List[torch.Tensor] = []
+    labels: List[int] = []
 
-    print(f"Создание последовательностей из {feature_dir}...")
-    print(f"Длина последовательности: {seq_length}")
-    print(
-        f"Соотношение Train/Test для последовательностей из файла: {train_ratio*100:.1f}% / {(1-train_ratio)*100:.1f}%"
-    )
+    print(f"Создание последовательностей из {data_path}...")
+    print(f"Длина последовательности: {sequence_length}")
+    print(f"Шаг (stride): {stride}")
+
+    # Используем свойство FEATURES объекта _DataPath
+    feature_dir = data_path.FEATURES
+
+    print(f"Директория с признаками: {feature_dir}")
+
+    if not feature_dir.exists():
+        raise FileNotFoundError(f"Директория с признаками не найдена: {feature_dir}")
 
     processed_files = 0
     skipped_files = 0
 
-    for class_info in names_structure:
+    for class_info in names:
         class_name = class_info.get("class")
-        if not class_name or class_name not in class_map:
-            # Предупреждение уже будет при создании словаря, здесь можно пропустить тихо
-            # warn(f"Пропуск класса '{class_name}': отсутствует или нет в class_map.")
+        if not class_name or class_name not in class_name_to_label_map:
+            # Пропускаем записи без класса или неизвестные классы
             skipped_files += len(class_info.get("samples", []))
             continue
 
-        label = class_map[class_name]
+        label = class_name_to_label_map[class_name]
         print(f"\nОбработка класса: '{class_name}' (метка: {label})")
 
         for sample in class_info.get("samples", []):
@@ -116,82 +105,75 @@ def create_sequences_from_files(
                 continue
 
             feature_file_path = feature_dir / f"{output_name}.npy"
-            # Убрано лишнее сообщение о загрузке каждого файла, чтобы не засорять лог
 
             try:
                 if not feature_file_path.is_file():
-                    raise FileNotFoundError(f"Файл не найден: {feature_file_path}")
+                    warn(f"  Файл не найден: {feature_file_path}")
+                    skipped_files += 1
+                    continue
 
-                # Загрузка данных кадра (предполагаем форму: [кадры, признаки_на_кадр])
+                # Загрузка данных (форма: [кадры, признаки])
                 data = np.load(feature_file_path).astype(np.float32)
 
                 # Проверки данных
                 if data.ndim != 2:
-                    raise ValueError(
-                        f"Некорректная размерность данных {data.ndim} (ожидалось 2)."
-                    )
-                if data.shape[0] < seq_length:
-                    raise ValueError(
-                        f"Недостаточно кадров ({data.shape[0]} < {seq_length})."
-                    )
-                if data.shape[1] == 0:
-                    raise ValueError("Количество признаков на кадр равно 0.")
-                if data.shape[1] != input_size_per_frame:
-                    raise ValueError(
-                        f"Несоответствие количества признаков: ожидалось {input_size_per_frame}, получено {data.shape[1]}. Проверьте INPUT_SIZE_PER_FRAME."
-                    )
-
-                # Создание перекрывающихся последовательностей из одного файла
-                file_sequences = []
-                num_frames = data.shape[0]
-                for i in range(0, num_frames - seq_length + 1, stride):
-                    sequence = data[i : i + seq_length, :]
-                    file_sequences.append(torch.tensor(sequence, dtype=torch.float32))
-
-                if not file_sequences:
-                    # Это не должно произойти при data.shape[0] >= seq_length
                     warn(
-                        f"  Не удалось создать последовательности из файла {feature_file_path}."
+                        f"  Некорректная размерность данных {data.ndim} в {feature_file_path}"
                     )
+                    skipped_files += 1
                     continue
 
-                # Разделение последовательностей из ЭТОГО файла на train/test
-                split_idx = int(len(file_sequences) * train_ratio)
-                train_seqs_file = file_sequences[:split_idx]
-                test_seqs_file = file_sequences[split_idx:]
+                if data.shape[0] < sequence_length:
+                    warn(
+                        f"  Недостаточно кадров ({data.shape[0]} < {sequence_length}) в {feature_file_path}"
+                    )
+                    skipped_files += 1
+                    continue
 
-                if train_seqs_file:
-                    train_sequences.extend(train_seqs_file)
-                    train_labels.extend([label] * len(train_seqs_file))
-                if test_seqs_file:
-                    test_sequences.extend(test_seqs_file)
-                    test_labels.extend([label] * len(test_seqs_file))
+                if data.shape[1] == 0:
+                    warn(f"  Количество признаков равно 0 в {feature_file_path}")
+                    skipped_files += 1
+                    continue
 
-                processed_files += 1
+                # Создание перекрывающихся последовательностей
+                num_frames = data.shape[0]
+                file_sequences = []
 
-            except FileNotFoundError as e:
-                warn(f"  Ошибка: {e}. Пропуск файла.")
-                skipped_files += 1
-            except ValueError as e:
-                warn(
-                    f"  Ошибка данных в файле '{feature_file_path}': {e}. Пропуск файла."
-                )
-                skipped_files += 1
+                for i in range(0, num_frames - sequence_length + 1, stride):
+                    sequence = data[i : i + sequence_length, :]
+                    file_sequences.append(torch.tensor(sequence, dtype=torch.float32))
+
+                if file_sequences:
+                    sequences.extend(file_sequences)
+                    labels.extend([label] * len(file_sequences))
+                    print(
+                        f"  Обработан {output_name}.npy: {len(file_sequences)} последовательностей"
+                    )
+                    processed_files += 1
+                else:
+                    warn(
+                        f"  Не удалось создать последовательности из {feature_file_path}"
+                    )
+                    skipped_files += 1
+
             except Exception as e:
-                warn(
-                    f"  Неожиданная ошибка при обработке файла '{feature_file_path}': {e}. Пропуск файла."
-                )
+                warn(f"  Ошибка при обработке {feature_file_path}: {e}")
                 skipped_files += 1
 
     print(f"\nСоздание последовательностей завершено.")
     print(f"Обработано файлов: {processed_files}")
-    print(f"Пропущено файлов/сэмплов: {skipped_files}")
-    print(f"Всего обучающих последовательностей: {len(train_sequences)}")
-    print(f"Всего тестовых последовательностей: {len(test_sequences)}")
+    print(f"Пропущено файлов: {skipped_files}")
+    print(f"Всего последовательностей: {len(sequences)}")
 
-    if not train_sequences or not test_sequences:
+    if len(sequences) == 0:
         raise RuntimeError(
-            "Не удалось создать обучающие или тестовые последовательности. Проверьте данные и пути."
+            f"Не удалось создать последовательности. Проверьте данные в {feature_dir}"
         )
 
-    return train_sequences, train_labels, test_sequences, test_labels
+    # Вывод информации о размерности
+    if sequences:
+        example_shape = sequences[0].shape
+        print(f"Форма одной последовательности: {example_shape}")
+        print(f"Признаков на кадр: {example_shape[1]}")
+
+    return sequences, labels
