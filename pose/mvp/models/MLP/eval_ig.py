@@ -655,6 +655,6 @@ if __name__ == "__main__":
         eval_feature_dir=EVAL_FEATURE_DIR,
         report_path=REPORT_CSV_PATH,
         # Передаем порог для margin
-        margin_threshold_val=0.3,  # Используем глобальное значение
+        margin_threshold_val=0.1,  # Используем глобальное значение
         use_deep_model_flag=USE_DEEP_MODEL,
     )
