@@ -570,14 +570,16 @@ def main():
     if all_sequence_results:
         try:
             # Вызываем НОВУЮ функцию агрегации и отчета
-            final_true_labels, final_predicted_labels, file_summaries = (
-                aggregate_and_report_margin_voting(
-                    all_sequence_results=all_sequence_results,
-                    label_to_name_map=LABEL_TO_CLASS_NAME_MAP,
-                    num_classes=NUM_CLASSES,
-                    margin_threshold=MARGIN_THRESHOLD,  # Передаем порог для фильтрации
-                    top_k=TOP_K_CLASSES,
-                )
+            (
+                final_true_labels,
+                final_predicted_labels,
+                file_summaries,
+            ) = aggregate_and_report_margin_voting(
+                all_sequence_results=all_sequence_results,
+                label_to_name_map=LABEL_TO_CLASS_NAME_MAP,
+                num_classes=NUM_CLASSES,
+                margin_threshold=MARGIN_THRESHOLD,  # Передаем порог для фильтрации
+                top_k=TOP_K_CLASSES,
             )
 
             # 8. Финальный Classification Report (с исправлением меток L0, L1...)
@@ -672,7 +674,6 @@ def main():
 
 # --- Точка входа в скрипт ---
 if __name__ == "__main__":
-
     feature_bake(
         eval=True,
         make_dir=True,

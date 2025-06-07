@@ -180,9 +180,8 @@ def main(
     scaler_path: str | os.PathLike = WEIGHTS / "Catboost_train_scaler.joblib",
     best_weights: str | os.PathLike = WEIGHTS / "best_model.cbm",
     top_params: str | os.PathLike = WEIGHTS / "top_params.json",
-    feature_imp_pth: str | os.PathLike = MODELS
-    / "Catboost"
-    / "feature_importance_analys",
+    feature_imp_pth: str
+    | os.PathLike = MODELS / "Catboost" / "feature_importance_analys",
     param_tuning=False,
     do_feature_analys=True,
 ):
