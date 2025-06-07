@@ -9,8 +9,15 @@ src/pose/nb/**/*
 *.mp4
 *.avi
 *.txt
-data/**/*
-!data/**/.gitkeep
+data/rsvid/train/*
+!data/rsvid/train/.gitkeep
+data/rsvid/eval/*
+!data/rsvid/eval/.gitkeep
+data/models/
+data/plots/
+data/rsvid/eval_backup/
+data/rsvid/train_backup/
+!*.dvc
 
 #compiled docs:
 docs/**/*.aux
