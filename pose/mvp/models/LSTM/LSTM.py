@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Dict, List, Tuple, Union
 from warnings import warn
 
+import hydra
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
@@ -19,6 +20,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from joblib import dump
+from omegaconf import DictConfig, OmegaConf
 from sklearn.metrics import (
     ConfusionMatrixDisplay,
     accuracy_score,
@@ -32,9 +34,6 @@ from sklearn.metrics import (
 )
 from sklearn.preprocessing import StandardScaler, label_binarize
 from torch.utils.data import DataLoader, Dataset
-
-import hydra
-from omegaconf import DictConfig, OmegaConf
 
 from ...paths.paths import MODELS, NAMES, TRAIN
 from .load import (

@@ -1,6 +1,7 @@
 # utils/data_utils.py или в вашем скрипте
-from dvc.repo import Repo
 from pathlib import Path
+
+from dvc.repo import Repo
 
 
 def main():

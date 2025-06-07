@@ -4,61 +4,60 @@ reproducibility:
 
 # Параметры данных
 data:
-  sequence_length: 30           # Длина каждой входной последовательности 
-  stride: 5                     # Шаг, с которым создаются последовательности из кадров файла
-  input_size_per_frame: 84      # Количество признаков, описывающих ОДИН кадр
-  train_ratio: 0.8              # Доля последовательностей из файла для обучения 
+  sequence_length: 30 # Длина каждой входной последовательности
+  stride: 5 # Шаг, с которым создаются последовательности из кадров файла
+  input_size_per_frame: 84 # Количество признаков, описывающих ОДИН кадр
+  train_ratio: 0.8 # Доля последовательностей из файла для обучения
 
 # Архитектура LSTM модели
 model:
   # Основные параметры LSTM
-  hidden_size: 186              # Размер скрытого состояния LSTM
-  num_layers: 4                 # Количество слоев LSTM (глубина)
-  use_bidirectional: true       # Использовать ли двунаправленную LSTM
-  
+  hidden_size: 186 # Размер скрытого состояния LSTM
+  num_layers: 4 # Количество слоев LSTM (глубина)
+  use_bidirectional: true # Использовать ли двунаправленную LSTM
+
   # Параметры Dropout
-  lstm_dropout: 0.6             # Dropout между слоями LSTM (только если слоев > 1)
-  fc_dropout: 0.4               # Dropout перед последним полносвязным слоем
-  
+  lstm_dropout: 0.6 # Dropout между слоями LSTM (только если слоев > 1)
+  fc_dropout: 0.4 # Dropout перед последним полносвязным слоем
+
   # Параметры FFN головы
-  use_ffn_head: false           # Использовать ли FFN голову
-  ffn_hidden_size: 128          # Размер скрытого слоя в FFN голове
-  ffn_dropout: 0.6              # Dropout внутри FFN головы
+  use_ffn_head: false # Использовать ли FFN голову
+  ffn_hidden_size: 128 # Размер скрытого слоя в FFN голове
+  ffn_dropout: 0.6 # Dropout внутри FFN головы
 
 # Параметры обучения
 training:
   # Основные параметры
-  batch_size: 32                # Количество последовательностей в одном батче
-  epochs: 10                    # Количество полных проходов по обучающему набору
-  learning_rate: 1e-4           # Скорость обучения оптимизатора
-  weight_decay: 0.1             # Коэффициент L2 регуляризации для AdamW
-  
+  batch_size: 32 # Количество последовательностей в одном батче
+  epochs: 10 # Количество полных проходов по обучающему набору
+  learning_rate: 1e-4 # Скорость обучения оптимизатора
+  weight_decay: 0.1 # Коэффициент L2 регуляризации для AdamW
+
   # Настройки оптимизатора
   optimizer:
-    name: "adamw"               # Тип оптимизатора
-    
-  
+    name: "adamw" # Тип оптимизатора
+
   # Функция потерь
   loss:
-    name: "cross_entropy"       # "cross_entropy" или "focal"
-    # Параметры для Focal Loss 
+    name: "cross_entropy" # "cross_entropy" или "focal"
+    # Параметры для Focal Loss
     focal:
       alpha: 0.75
       gamma: 2.0
 
 # Параметры DataLoader
 dataloader:
-  num_workers: 8                # Количество процессов для загрузки данных
-  pin_memory: true              # Использовать pin_memory для GPU 
-  shuffle_train: true           # Перемешивать обучающие данные
-  shuffle_test: false           # Не перемешивать тестовые данные
+  num_workers: 8 # Количество процессов для загрузки данных
+  pin_memory: true # Использовать pin_memory для GPU
+  shuffle_train: true # Перемешивать обучающие данные
+  shuffle_test: false # Не перемешивать тестовые данные
 
 # Сохранение результатов
 saving:
-  save_weights: true            # Сохранять ли лучшую модель
-  save_plots: true              # Сохранять ли графики обучения
-  save_scaler: true             # Сохранять ли StandardScaler
-  
+  save_weights: true # Сохранять ли лучшую модель
+  save_plots: true # Сохранять ли графики обучения
+  save_scaler: true # Сохранять ли StandardScaler
+
   # Имена файлов (относительно models_dir из data конфига)
   model_filename: "best_lstm_model.pth"
   scaler_filename: "lstm_scaler.joblib"
@@ -66,15 +65,15 @@ saving:
 
 # Логирование и мониторинг
 logging:
-  log_every_epoch: true         # Логировать метрики каждую эпоху
-  save_best_only: true          # Сохранять только лучшую модель (по test loss)
-  verbose: true                 # Подробный вывод
+  log_every_epoch: true # Логировать метрики каждую эпоху
+  save_best_only: true # Сохранять только лучшую модель (по test loss)
+  verbose: true # Подробный вывод
 
-# Дополнительные настройки архитектуры 
+# Дополнительные настройки архитектуры
 advanced:
-  use_attention: false          # Для будущих экспериментов с attention
-  gradient_clipping: null       # null или значение для gradient clipping
+  use_attention: false # Для будущих экспериментов с attention
+  gradient_clipping: null # null или значение для gradient clipping
   early_stopping:
-    enabled: false              # Включить early stopping
-    patience: 10                # Количество эпох без улучшения
-    min_delta: 1e-4            # Минимальное улучшение
+    enabled: false # Включить early stopping
+    patience: 10 # Количество эпох без улучшения
+    min_delta: 1e-4 # Минимальное улучшение

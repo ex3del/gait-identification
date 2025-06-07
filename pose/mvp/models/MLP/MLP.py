@@ -44,12 +44,12 @@ from sklearn.metrics import (
 from sklearn.preprocessing import StandardScaler, label_binarize
 from torch.utils.data import DataLoader, Dataset
 
+from ...data_download import main as data_download
+from ...feature_bake import main as feature_bake
+
 # Импорт путей и функции загрузки данных
 from ...paths.paths import MODELS, NAMES
 from .load import load_and_split_data
-from ...feature_bake import main as feature_bake
-from ...data_download import main as data_download
-
 
 if TYPE_CHECKING:
     pass

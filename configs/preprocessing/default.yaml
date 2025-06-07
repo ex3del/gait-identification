@@ -1,20 +1,20 @@
 # Схема скелета
 skeleton:
-  scheme: "_17"  # KeypointScheme._17
-  exclude_keypoints: [0, 1, 2, 4]  # нос, глаза, уши - не заменяются при импутации
+  scheme: "_17" # KeypointScheme._17
+  exclude_keypoints: [0, 1, 2, 4] # нос, глаза, уши - не заменяются при импутации
 
 # Параметры заполнения пропущенных значений
 imputation:
-  method: ""  # "", "interpolation", "knn", "moving_average", "ml"
-  
+  method: "" # "", "interpolation", "knn", "moving_average", "ml"
+
   # Параметры для KNN импутации
   knn:
     n_neighbors: 5
-  
-  # Параметры для Moving Average импутации  
+
+  # Параметры для Moving Average импутации
   moving_average:
     window_size: 5
-  
+
   # Параметры для ML импутации
   ml:
     max_iter: 10
@@ -23,27 +23,27 @@ imputation:
 # Параметры сглаживания исходных 3D координат
 smoothing:
   primary:
-    method: "decay_filt"  # "decay_filt", "hann", "median", "mean_avg"
-    K: 0.007  # коэффициент для decay_filt
-  
+    method: "decay_filt" # "decay_filt", "hann", "median", "mean_avg"
+    K: 0.007 # коэффициент для decay_filt
+
   # Параметры для альтернативных методов сглаживания
   hann_window_size: 7
-  median_window_size: 5  # должно быть нечетным
+  median_window_size: 5 # должно быть нечетным
   mean_avg_window_size: 5
 
 # Параметры сглаживания извлеченных признаков
 feature_smoothing:
-  method: "decay_filt"  # "decay_filt", "hann", "median", "mean_avg"
-  K: 0.05  # коэффициент для decay_filt признаков
-  window_size: 5  # не используется с decay_filt, но оставлен для других методов
+  method: "decay_filt" # "decay_filt", "hann", "median", "mean_avg"
+  K: 0.05 # коэффициент для decay_filt признаков
+  window_size: 5 # не используется с decay_filt, но оставлен для других методов
 
 # Параметры скользящих окон
 sliding_window:
   # Параметры для sliding_window (extractor_n_frames=True)
   window_size: 30
   step: 3
-  
-  # Параметры для sliding (extractor_n_frames=False) 
+
+  # Параметры для sliding (extractor_n_frames=False)
   n: 5
   step_sliding: 2
 
@@ -54,27 +54,27 @@ lstm_formatting:
 # Флаги обработки - какие группы признаков включать
 features:
   # Основные флаги
-  add_3d_points: false          # Добавлять развернутые 3D координаты
-  add_new_features: false       # Включать дополнительные группы признаков
-  feature_selecting: false      # Отбирать лучшие признаки
-  
+  add_3d_points: false # Добавлять развернутые 3D координаты
+  add_new_features: false # Включать дополнительные группы признаков
+  feature_selecting: false # Отбирать лучшие признаки
+
   # Дополнительные группы признаков (требуют add_new_features=true)
-  distances: false              # Производные длин сегментов
-  grad_ang: false              # Углы между производными сегментов  
+  distances: false # Производные длин сегментов
+  grad_ang: false # Углы между производными сегментов
   conn_derivative_angles: false # Углы между сегментами и производными
 
 # Параметры форматирования выходных данных
 output_format:
-  parametrization: false        # Применять скользящее окно
-  extractor_n_frames: false     # Использовать sliding_window вместо sliding
-  GCN_TTF: false               # Формат для GCN (только 3D точки)
-  lstm_sequence: false         # Формат для LSTM (многоканальный)
+  parametrization: false # Применять скользящее окно
+  extractor_n_frames: false # Использовать sliding_window вместо sliding
+  GCN_TTF: false # Формат для GCN (только 3D точки)
+  lstm_sequence: false # Формат для LSTM (многоканальный)
 
 # Параметры масок
 masks:
-  use_masks: false             # Создавать и применять маски для валидных точек/связей
+  use_masks: false # Создавать и применять маски для валидных точек/связей
 
 # Системные настройки
 system:
-  make_dir: true               # Создавать необходимые директории
-  eval_mode: false             # Режим оценки (влияет на выбор сэмплов)
+  make_dir: true # Создавать необходимые директории
+  eval_mode: false # Режим оценки (влияет на выбор сэмплов)

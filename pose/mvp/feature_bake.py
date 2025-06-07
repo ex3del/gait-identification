@@ -11,16 +11,15 @@
 
 from typing import TYPE_CHECKING
 
+import hydra
 import numpy as np
 import scipy
+from omegaconf import DictConfig, OmegaConf
 from scipy.interpolate import interp1d
 from scipy.signal import medfilt
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer, KNNImputer
 from sklearn.tree import DecisionTreeRegressor
-
-import hydra
-from omegaconf import DictConfig, OmegaConf
 
 from ..features.extract_lengths import (
     KeypointScheme,
@@ -532,10 +531,6 @@ def get_imputation_function(method: str, cfg: DictConfig):
 
 
 @hydra.main(config_path="../../configs", config_name="config", version_base="1.1")
-
-# --- Основная функция обработки ---
-
-
 def main(cfg: DictConfig) -> None:
     """
     Главная функция для загрузки 3D данных, извлечения признаков и их сохранения.

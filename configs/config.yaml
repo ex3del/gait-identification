@@ -2,7 +2,7 @@
 defaults:
   - data: default
   - preprocessing: default
-  - training: lstm 
+  - training: lstm
   - _self_
 
 # Глобальные настройки
