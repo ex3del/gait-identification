@@ -31,3 +31,17 @@ mlartifacts/
 
 # Other
 README.md
+venv/
+
+# Игнорировать кэш Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Игнорировать файлы IDE
+.idea/
+.vscode/
+
+# Игнорировать кэш pytest
+.pytest_cache/

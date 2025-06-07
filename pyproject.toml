@@ -23,6 +23,8 @@ dependencies = [
     "tensorboard>=2.15.0",
     "mlflow>=2.10.0",
     "dvc[all]>=3.40.0",
+    "tritonclient[all]>=2.40.0",
+    "gevent>=23.0.0",
 ]
 
 [tool.uv.sources]

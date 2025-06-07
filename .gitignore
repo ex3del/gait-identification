@@ -63,3 +63,12 @@ models/
 # Hydra outputs
 outputs/
 .hydra/
+
+# Результаты инференса
+results/
+logs/
+*.log
+
+# Triton models (большие файлы)
+models/triton_repository/
+models/LSTM/TensorRT/

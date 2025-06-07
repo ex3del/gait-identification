@@ -1171,18 +1171,33 @@ def main(cfg: DictConfig) -> None:
         # ✅ ЛОГИРОВАНИЕ АРТЕФАКТОВ ЧЕРЕЗ LIGHTNING LOGGER
         if cfg.training.logging.mlflow.enable and logger:
             try:
+                from mlflow.models import infer_signature
+
+                # Создаем пример входных данных
+                example_input = torch.randn(
+                    1,  # batch_size
+                    cfg.training.data.sequence_length,  # 30
+                    cfg.training.data.input_size_per_frame,  # 84
+                )
+
+                # Получаем пример выходных данных
+                lightning_model.eval()
+                with torch.no_grad():
+                    example_output = lightning_model(example_input)
+
+                signature = infer_signature(
+                    example_input.numpy(), example_output.numpy()
+                )
+
                 mlflow.pytorch.log_model(
                     lightning_model,
                     "model",
                     registered_model_name="LSTM_Gait_Classifier_Lightning",
+                    signature=signature,
+                    input_example=example_input.numpy(),
                 )
 
-                if best_weights_path.exists():
-                    # Используем стандартный mlflow.log_artifact вместо logger.experiment
-                    mlflow.log_artifact(str(best_weights_path), "weights")
-                mlflow.log_artifact(str(scaler_path), "preprocessing")
-
-                print("✅ Модель и артефакты загружены в MLflow")
+                print("✅ Модель сохранена с signature")
 
             except Exception as e:
                 warn(f"Ошибка логирования модели в MLflow: {e}")

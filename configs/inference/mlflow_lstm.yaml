@@ -1,0 +1,99 @@
+# configs/inference/mlflow_lstm.yaml
+# Конфигурация для MLflow Serving инференса LSTM модели (без ONNX)
+
+# MLflow Serving настройки
+mlflow:
+  # Сервер настройки
+  serving:
+    host: "127.0.0.1"
+    port: 8081
+    workers: 4
+    timeout: 60
+
+  # Модель настройки
+  model:
+    # Пути к артефактам модели
+    model_uri: "models:/LSTM_Gait_Classifier_Lightning/latest" # Из MLflow registry
+    # Альтернативно можно использовать run_id:
+    # model_uri: "runs:/<run_id>/model"
+
+    # ✅ УБИРАЕМ ONNX, оставляем только PyTorch пути
+    local_weights_path: "models/LSTM/LSTM_weights/best_lstm_model.pth"
+    local_scaler_path: "models/LSTM/LSTM_weights/lstm_scaler.joblib"
+
+  # Serving опции
+  deployment:
+    name: "lstm-gait-classifier"
+    enable_mlflow_tracing: true
+    synchronous: true
+    timeout_seconds: 30
+
+# Модель параметры (должны совпадать с обученной моделью из paste-2.txt)
+model:
+  # Архитектура (из GaitClassifierLSTM)
+  input_size_per_frame: 84
+  sequence_length: 30
+  hidden_size: 186
+  num_layers: 4
+  num_classes: 21
+  use_bidirectional: true
+  lstm_dropout: 0.6
+  fc_dropout: 0.4
+  use_ffn_head: false
+  ffn_hidden_size: 128
+
+# Данные для инференса
+data:
+  # Входные данные
+  input_dir: "data/rsvid/eval/features" # Папка с .npy файлами
+
+  # Препроцессинг параметры
+  sequence_length: 30
+  stride: 5
+  input_size_per_frame: 84
+  apply_scaling: true
+
+  # Пути к preprocessing артефактам
+  scaler_path: "models/LSTM/LSTM_weights/lstm_scaler.joblib"
+
+  # Классы (автоматически извлекается из CLASS_NAMES_ORDERED)
+  class_names: "auto"
+  num_classes: 21
+
+# Параметры инференса
+inference:
+  # Batch обработка
+  batch_size: 256
+  num_workers: 0 # ✅ Ставим 0 чтобы избежать проблем с Windows
+  pin_memory: true
+
+  # Агрегация результатов (из paste.txt)
+  aggregation:
+    margin_threshold: 0.1
+    method: "margin_sum_voting"
+    top_k_classes: 3
+    min_sequences_per_file: 1
+
+# MLflow client настройки
+client:
+  endpoint_url: "http://127.0.0.1:8081/invocations"
+  content_type: "application/json"
+  request_format: "instances" # ✅ Для PyTorch моделей
+  timeout_seconds: 30
+  max_retries: 3
+  max_batch_size: 64
+
+# Результаты и отчеты
+output:
+  results_dir: "results/inference/mlflow_lstm"
+  detailed_report_csv: "mlflow_lstm_inference_margin_voting_report.csv"
+  summary_report_txt: "mlflow_lstm_classification_report.txt"
+  predictions_json: "mlflow_lstm_predictions.json"
+  save_detailed_csv: true
+  save_summary_txt: true
+  save_predictions_json: true
+
+# Воспроизводимость
+reproducibility:
+  random_seed: 42
+  deterministic: true
