@@ -116,3 +116,16 @@ reproducibility:
   random_seed: 42
   deterministic: true # Детерминированное поведение PyTorch
   benchmark: false # Отключить benchmark для воспроизводимости
+
+production:
+  onnx:
+    enable: true # Включить автоматический экспорт в ONNX
+    opset_version: 11 # Версия ONNX opset (11 совместим с TensorRT)
+    optimize: true # Применить оптимизации при экспорте
+    export_preprocessing: true # Экспортировать ли препроцессинг
+
+  tensorrt:
+    enable: false # Включить автоматическую конвертацию в TensorRT
+    precision: "fp16" # fp32, fp16, int8
+    max_batch_size: 64 # Максимальный размер батча
+    workspace_size: 1024 # Размер workspace в MB

@@ -879,6 +879,86 @@ class GaitClassifierLightning(L.LightningModule):
                 warn(f"Ошибка создания графиков: {e}")
 
 
+# Обновите функцию export_model_to_onnx для использования конфигурации:
+
+
+def export_model_to_onnx(
+    lightning_model: GaitClassifierLightning, cfg: DictConfig, original_cwd: Path
+) -> Path:
+    """
+    Экспортирует обученную Lightning модель в ONNX формат согласно Task-2-Training-code.txt.
+    """
+    print("🔄 Экспорт LSTM модели в ONNX...")
+
+    # Пути для сохранения
+    models_dir = original_cwd / cfg.data.paths.models_dir
+    onnx_dir = models_dir / "LSTM" / "ONNX"
+    onnx_dir.mkdir(parents=True, exist_ok=True)
+
+    onnx_path = onnx_dir / "lstm_gait_classifier.onnx"
+
+    # Переводим модель в режим оценки
+    lightning_model.eval()
+
+    # Создание примера входных данных
+    example_input = torch.randn(
+        1,  # batch_size = 1 для примера
+        cfg.training.data.sequence_length,  # 30
+        cfg.training.data.input_size_per_frame,  # 84
+    )
+
+    print(f"📝 Форма входных данных: {example_input.shape}")
+    print(f"📁 Сохранение в: {onnx_path}")
+
+    # ✅ ИСПОЛЬЗУЕМ ПАРАМЕТРЫ ИЗ КОНФИГУРАЦИИ
+    opset_version = (
+        getattr(cfg.training, "production", {}).get("onnx", {}).get("opset_version", 11)
+    )
+    optimize = (
+        getattr(cfg.training, "production", {}).get("onnx", {}).get("optimize", True)
+    )
+
+    # Экспорт в ONNX
+    with torch.no_grad():
+        torch.onnx.export(
+            lightning_model.model,  # Используем внутреннюю LSTM модель
+            example_input,
+            str(onnx_path),
+            export_params=True,
+            opset_version=opset_version,  # Из конфигурации
+            do_constant_folding=optimize,  # Из конфигурации
+            input_names=["input_sequences"],
+            output_names=["class_predictions"],
+            dynamic_axes={
+                "input_sequences": {0: "batch_size"},  # Динамический batch size
+                "class_predictions": {0: "batch_size"},
+            },
+            verbose=False,
+        )
+
+    print(f"✅ ONNX модель сохранена: {onnx_path}")
+
+    # Проверка созданной модели
+    try:
+        import onnx
+
+        onnx_model = onnx.load(str(onnx_path))
+        onnx.checker.check_model(onnx_model)
+        print("✅ ONNX модель прошла проверку")
+
+        # Информация о модели
+        file_size = onnx_path.stat().st_size / 1024 / 1024
+        print(f"📊 Размер ONNX файла: {file_size:.2f} MB")
+        print(f"📊 ONNX opset version: {opset_version}")
+
+    except ImportError:
+        warn("ONNX библиотека не установлена для проверки модели")
+    except Exception as e:
+        warn(f"Ошибка проверки ONNX модели: {e}")
+
+    return onnx_path
+
+
 # === Главная функция ===
 @hydra.main(config_path="../../../../configs", config_name="config", version_base="1.1")
 def main(cfg: DictConfig) -> None:
@@ -1112,6 +1192,27 @@ def main(cfg: DictConfig) -> None:
         traceback.print_exc()
         return
 
+    # === ЭКСПОРТ В PRODUCTION ФОРМАТЫ ===
+    production_config = getattr(cfg.training, "production", {})
+    onnx_config = production_config.get("onnx", {})
+
+    if cfg.training.saving.save_weights and onnx_config.get("enable", True):
+        try:
+            # Экспорт в ONNX
+            onnx_path = export_model_to_onnx(lightning_model, cfg, original_cwd)
+
+            # Логирование ONNX в MLflow
+            if cfg.training.logging.mlflow.enable:
+                mlflow.log_artifact(str(onnx_path), "models")
+                print(f"✅ ONNX модель загружена в MLflow: {onnx_path}")
+
+            print("✅ Production экспорт в ONNX завершен")
+
+        except Exception as e:
+            warn(f"Ошибка экспорта в ONNX: {e}")
+            traceback.print_exc()
+
+    print("\n--- Скрипт успешно завершен с ONNX экспортом ---")
     print("\n--- Скрипт успешно завершен с PyTorch Lightning + MLflow ---")
 
 
