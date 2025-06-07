@@ -53,21 +53,6 @@
   bash run_pipeline.sh
   ```
 
-### 2.3. Остановка MLflow сервера
-
-После того как конвейер обучения успешно завершил свою работу, вы можете остановить MLflow сервер.
-
-- **Windows (в PowerShell):**
-
-  ```powershell
-  .\mlflow_control.bat stop
-  ```
-
-- **macOS / Linux:**
-  ```bash
-  bash mlflow_control.sh stop
-  ```
-
 ## Шаг 3: Запуск оценки модели (Inference)
 
 Этот скрипт запускает процесс оценки на основе уже обученной модели.
@@ -81,6 +66,21 @@
 - **macOS / Linux:**
   ```bash
   bash evaluate.sh
+  ```
+
+### 4 Остановка MLflow сервера
+
+После того как конвейер обучения успешно завершил свою работу, вы можете остановить MLflow сервер.
+
+- **Windows (в PowerShell):**
+
+  ```powershell
+  .\mlflow_control.bat stop
+  ```
+
+- **macOS / Linux:**
+  ```bash
+  bash mlflow_control.sh stop
   ```
 
 ---
