@@ -1,0 +1,242 @@
+[
+    {
+        "class": "Anatoly",
+        "samples": [
+            {
+                "bag": "Anatoly",
+                "out": "Anatoly",
+                "eval": "Anatoly"
+            },
+            {
+                "bag": "Anatoly_2",
+                "out": "Anatoly_2",
+                "eval": ""
+            }
+        ]
+    },
+    {
+        "class": "Boris",
+        "samples": [
+            {
+                "bag": "Boris",
+                "out": "Boris",
+                "eval": "Boris"
+            },
+            {
+                "bag": "Boris_2",
+                "out": "Boris_2",
+                "eval": ""
+            },
+            {
+                "bag": "Boris_Long",
+                "out": "Boris_Long",
+                "eval": ""
+            }
+        ]
+    },
+    {
+        "class": "Evgeny",
+        "samples": [
+            {
+                "bag": "Evgeny_Long",
+                "out": "Evgeny_Long",
+                "eval": "Evgeny"
+            },
+            {
+                "bag": "Evgeny_2",
+                "out": "Evgeny_2",
+                "eval": ""
+            }
+        ]
+    },
+    {
+        "class": "Igor_Netay",
+        "samples": [
+            {
+                "bag": "Igor_Netay_long",
+                "out": "Igor_Netay_long",
+                "eval": "Igor_Netay_"
+            }
+        ]
+    },
+    {
+        "class": "Ilia",
+        "samples": [
+            {
+                "bag": "Ilia",
+                "out": "Ilia",
+                "eval": "Ilia"
+            }
+        ]
+    },
+    {
+        "class": "Konstantin",
+        "samples": [
+            {
+                "bag": "Konstantin",
+                "out": "Konstantin",
+                "eval": "Konstantin"
+            },
+            {
+                "bag": "Konstantin_Long",
+                "out": "Konstantin_Long",
+                "eval": ""
+            },
+            {
+                "bag": "Konstantin_long_corridor",
+                "out": "Konstantin_long_corridor",
+                "eval": ""
+            }
+        ]
+    },
+    {
+        "class": "Mavjuda",
+        "samples": [
+            {
+                "bag": "Mavjuda",
+                "out": "Mavjuda",
+                "eval": "Mavjuda"
+            }
+        ]
+    },
+    {
+        "class": "Oleg_Karasev",
+        "samples": [
+            {
+                "bag": "Oleg_Karasev",
+                "out": "Oleg_Karasev",
+                "eval": "Oleg_Karasev"
+            }
+        ]
+    },
+    {
+        "class": "Popov_Mihail",
+        "samples": [
+            {
+                "bag": "Popov_Mihail",
+                "out": "Popov_Mihail",
+                "eval": "Popov_Mihail"
+            }
+        ]
+    },
+    {
+        "class": "Varvara",
+        "samples": [
+            {
+                "bag": "Varvara",
+                "out": "Varvara",
+                "eval": "Varvara"
+            }
+        ]
+    },
+    {
+        "class": "Mikhail_Arbatskiy",
+        "samples": [
+            {
+                "bag": "Mikhail_Arbatskiy",
+                "out": "Mikhail_Arbatskiy",
+                "eval": "Mikhail_Arbatskiy"
+            }
+        ]
+    },
+    {
+        "class": "Alexey(Andrey)_Ivanov",
+        "samples": [
+            {
+                "bag": "Alexey(Andrey)_Ivanov",
+                "out": "Alexey(Andrey)_Ivanov",
+                "eval": "Alexey(Andrey)_Ivanov"
+            }
+        ]
+    },
+    {
+        "class": "Andrey_Harlamov",
+        "samples": [
+            {
+                "bag": "Andrey_Harlamov",
+                "out": "Andrey_Harlamov",
+                "eval": "Andrey_Harlamov"
+            }
+        ]
+    },
+    {
+        "class": "Andrey_Vedernikov",
+        "samples": [
+            {
+                "bag": "Andrey_Vedernikov",
+                "out": "Andrey_Vedernikov",
+                "eval": "Andrey_Vedernikov"
+            }
+        ]
+    },
+    {
+        "class": "Artem_s4go_levoe_krylo",
+        "samples": [
+            {
+                "bag": "Artem_s4go_levoe_krylo",
+                "out": "Artem_s4go_levoe_krylo",
+                "eval": "Artem_s4go_levoe_krylo"
+            }
+        ]
+    },
+    {
+        "class": "Maxim_Romanov",
+        "samples": [
+            {
+                "bag": "Maxim_Romanov",
+                "out": "Maxim_Romanov",
+                "eval": "Maxim_Romanov"
+            }
+        ]
+    },
+    {
+        "class": "Sergey_Ignatyev",
+        "samples": [
+            {
+                "bag": "Sergey_Ignatyev",
+                "out": "Sergey_Ignatyev",
+                "eval": "Sergey_Ignatyev"
+            }
+        ]
+    },
+    {
+        "class": "Igor_303",
+        "samples": [
+            {
+                "bag": "Igor_303",
+                "out": "Igor_303",
+                "eval": "Igor_303"
+            }
+        ]
+    },
+    {
+        "class": "Nikita_Kolmakov",
+        "samples": [
+            {
+                "bag": "Nikita_Kolmakov",
+                "out": "Nikita_Kolmakov",
+                "eval": "Nikita_Kolmakov"
+            }
+        ]
+    },
+    {
+        "class": "Maxim_student",
+        "samples": [
+            {
+                "bag": "Maxim_student",
+                "out": "Maxim_student",
+                "eval": "Maxim_student"
+            }
+        ]
+    },
+    {
+        "class": "Esin",
+        "samples": [
+            {
+                "bag": "Esin",
+                "out": "Esin",
+                "eval": "Esin"
+            }
+        ]
+    }
+]

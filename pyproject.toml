@@ -1,0 +1,74 @@
+[project]
+name = "ml-project"
+version = "0.1.0"
+description = "ML project with minimal dependencies"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy==1.26.4",
+    "torch>=2.3.0",
+    "torchvision>=0.18.0",
+    "torchaudio>=2.3.0",
+    "scikit-learn>=1.5.1",
+    "matplotlib>=3.10.1",
+    "seaborn>=0.13.2",
+    "pandas>=2.2.2",
+    "scipy>=1.14.0",
+    "joblib>=1.4.2",
+]
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cu121", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+torchvision = [
+    { index = "pytorch-cu121", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+torchaudio = [
+    { index = "pytorch-cu121", marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu121"
+url = "https://download.pytorch.org/whl/cu121"
+explicit = true
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "black>=24.4.2",
+    "flake8>=7.0.0",
+    "isort>=5.13.2",
+    "mlflow>=2.22.0",
+    "mypy>=1.16.0",
+    "new-package>=0.0.1",
+    "pytest>=8.3.5",
+    "pytest-cov>=6.1.1",
+    "tensorboard>=2.19.0",
+    "pre-commit>=3.7.1",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "--cov=src --cov-report=html --cov-report=term"
+
+[dependency-groups]
+dev = [
+    "autoflake>=2.3.1",
+    "autopep8>=2.3.2",
+    "ruff>=0.11.13",
+]

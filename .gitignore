@@ -1,0 +1,47 @@
+.env
+
+# jupyter
+src/pose/nb/**/*
+!src/pose/nb/Makefile
+
+# local data
+*.npy
+*.mp4
+*.avi
+*.txt
+data/**/*
+!data/**/.gitkeep
+
+#compiled docs:
+docs/**/*.aux
+docs/**/*.pdf
+docs/**/*.toc
+docs/**/*.bbl
+docs/**/*.dvi
+docs/**/*.ps
+
+# vim
+*.swp
+*.svo
+
+# logs
+**/catboost_info/**/*
+
+# YOLO checkpoints
+src/pose/*.pt
+
+# Python bytecode
+**/__pycache__/**/*
+
+# auto-generated code
+src/pose/utils/**/*.cpp
+
+# logs
+src/pose/catboost_info/
+
+# user garbage
+.vscode
+.DS_Store
+*.pt
+*.pth
+*.onnx
