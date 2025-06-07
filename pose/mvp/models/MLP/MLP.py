@@ -47,6 +47,9 @@ from torch.utils.data import DataLoader, Dataset
 # Импорт путей и функции загрузки данных
 from ...paths.paths import MODELS, NAMES
 from .load import load_and_split_data
+from ...feature_bake import main as feature_bake
+from ...data_download import main as data_download
+
 
 if TYPE_CHECKING:
     pass
@@ -948,5 +951,19 @@ def main(
 
 # --- Точка входа ---
 if __name__ == "__main__":
+    data_download()
     # Запуск основной функции с путями по умолчанию
+    feature_bake(
+        eval=False,
+        make_dir=True,
+        add_new_features=False,
+        distances=False,
+        grad_ang=False,
+        conn_derivative_angles=False,
+        parametrization=True,
+        extractor_n_frames=True,
+        feature_selecting=False,
+        imputation_method="",
+        use_masks=False,
+    )
     main()

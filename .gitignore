@@ -18,6 +18,7 @@ data/plots/
 data/rsvid/eval_backup/
 data/rsvid/train_backup/
 !*.dvc
+outputs/
 
 #compiled docs:
 docs/**/*.aux

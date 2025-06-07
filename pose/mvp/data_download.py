@@ -3,7 +3,7 @@ from dvc.repo import Repo
 from pathlib import Path
 
 
-def setup_data():
+def main():
     """
     Загружает данные через DVC автоматически.
     """
@@ -60,4 +60,4 @@ def setup_data():
 
 
 if __name__ == "__main__":
-    setup_data()
+    main()

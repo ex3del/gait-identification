@@ -1,0 +1,10 @@
+# configs/config.yaml
+defaults:
+  - data: default
+  - preprocessing: default
+  - training: lstm 
+  - _self_
+
+# Глобальные настройки
+project_name: "pose_estimation"
+seed: 42

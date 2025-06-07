@@ -1,0 +1,54 @@
+
+paths:
+  # Корневая папка с данными
+  data_root: "data"
+  
+  # Исходные данные (управляемые DVC)
+  raw_data_root: "data/rsvid"
+  train_raw: "data/rsvid/train"
+  eval_raw: "data/rsvid/eval"
+  
+  # Обработанные данные (.npy файлы)
+  processed_data_root: "data/rsvid"
+  train_features: "data/rsvid/train/features"
+  eval_features: "data/rsvid/eval/features"
+  
+  # Результаты (локальные папки, не в DVC)
+  models_dir: "data/models"
+  plots_dir: "data/plots"
+  logs_dir: "logs"
+
+# Настройки файлов
+files:
+  # Форматы входных и выходных файлов
+  input_format: ".npy"
+  model_format: ".pth"
+  config_format: ".yaml"
+  
+  
+# Параметры загрузки данных
+loading:
+  # Проверка существования файлов при запуске
+  validate_paths: true
+  
+  # Загрузка в память vs lazy loading
+  preload_data: false
+  
+  # Формат данных numpy
+  dtype: "float32"
+  
+  # Проверка целостности .npy файлов
+  verify_integrity: true
+
+# Параметры разделения данных (если нужно дополнительное разделение)
+splitting:
+  # Если нужно разделить train на train/val
+  use_validation_split: true
+  validation_ratio: 0.2
+  
+  # Стратификация (если применимо)
+  stratify: false
+  
+  # Случайное перемешивание
+  shuffle: true
+  random_state: 42

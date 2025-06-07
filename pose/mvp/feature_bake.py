@@ -19,6 +19,9 @@ from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer, KNNImputer
 from sklearn.tree import DecisionTreeRegressor
 
+import hydra
+from omegaconf import DictConfig, OmegaConf
+
 from ..features.extract_lengths import (
     KeypointScheme,
     extract_connection_derivative_angles,
@@ -490,75 +493,85 @@ def create_masks(
     return point_mask, connection_mask
 
 
+def get_smoothing_function(method: str, **kwargs):
+    """
+    Возвращает функцию сглаживания на основе метода из конфига.
+    """
+    if method == "decay_filt":
+        K = kwargs.get("K", 0.007)
+        return lambda arr: decay_filt(arr, K)
+    elif method == "hann":
+        window_size = kwargs.get("hann_window_size", 7)
+        return lambda arr: smoothen(arr, window_size)
+    elif method == "median":
+        window_size = kwargs.get("median_window_size", 5)
+        return lambda arr: medfilter(arr, window_size)
+    elif method == "mean_avg":
+        window_size = kwargs.get("mean_avg_window_size", 5)
+        return lambda arr: mean_avg(arr, window_size)
+    else:
+        raise ValueError(f"Неизвестный метод сглаживания: {method}")
+
+
+def get_imputation_function(method: str, cfg: DictConfig):
+    """
+    Возвращает функцию импутации на основе метода из конфига.
+    """
+    if method == "interpolation":
+        return interpolate_missing_values
+    elif method == "knn":
+        n_neighbors = cfg.imputation.knn.n_neighbors
+        return lambda arr: knn_impute_missing_values(arr, n_neighbors)
+    elif method == "moving_average":
+        window_size = cfg.imputation.moving_average.window_size
+        return lambda arr: moving_average_impute(arr, window_size)
+    elif method == "ml":
+        return ml_impute_missing_values
+    else:  # method == "" или любой другой
+        return replace_missing_values
+
+
+@hydra.main(config_path="../../configs", config_name="config", version_base="1.1")
+
 # --- Основная функция обработки ---
 
 
-def main(
-    add_3d_points: bool = False,
-    make_dir: bool = True,
-    eval: bool = False,
-    extractor_n_frames: bool = False,  # включает sliding_window?
-    parametrization: bool = False,  # Включает sliding или sliding_window
-    add_new_features: bool = False,  # Включает доп. группы признаков
-    distances: bool = False,  # Включает производные длин
-    grad_ang: bool = False,  # Включает углы градиентов
-    conn_derivative_angles: bool = False,  # Включает углы между сегментами и производными
-    GCN_TTF: bool = False,  # Формат вывода для GCN (только 3D точки)
-    lstm_sequence: bool = False,  # Формат вывода для LSTM (несколько каналов признаков)
-    feature_selecting: bool = False,  # отбираем ли лучшие признаки
-    imputation_method: str = "",
-    use_masks=False,
-) -> None:
+def main(cfg: DictConfig) -> None:
     """
     Главная функция для загрузки 3D данных, извлечения признаков и их сохранения.
 
-    Загружает 3D координаты, обрабатывает их (заполнение пропусков, сглаживание),
-    извлекает набор базовых и дополнительных геометрических признаков (длины, углы,
-    их производные), объединяет их и форматирует результат в соответствии с
-    выбранными параметрами (например, с применением скользящего окна или
-    специфического форматирования для GCN/LSTM).
-
     Args:
-        add_3d_points (bool, optional): Добавлять ли исходные (сглаженные) 3D координаты
-                                        (развернутые в вектор) к массиву признаков. Defaults to False.
-        make_dir (bool, optional): Создавать ли необходимые директории для выходных файлов.
-                                   Defaults to True.
-        eval (bool, optional): Использовать ли режим теста (влияет на выбор входных/выходных
-                               путей и обрабатываемых сэмплов). Defaults to False.
-        extractor_n_frames (bool, optional): Если True и `parametrization`=True, используется
-                                             `sliding_window`. Defaults to True.
-        parametrization (bool, optional): Применять ли скользящее окно (`sliding` или
-                                         `sliding_window`). Defaults to True.
-        add_new_features (bool, optional): Включать ли дополнительные группы признаков
-                                           (управляемые флагами `distances`, `grad_ang`,
-                                           `conn_derivative_angles`). Defaults to False.
-        distances (bool, optional): Включать ли производные длин сегментов как признаки.
-                                    Требует `add_new_features=True`. Defaults to False.
-        grad_ang (bool, optional): Включать ли косинусы углов между производными сегментов.
-                                   Требует `add_new_features=True`. Defaults to False.
-        conn_derivative_angles (bool, optional): Включать ли углы между сегментами и производными.
-                                                Требует `add_new_features=True`. Defaults to False.
-        GCN_TTF (bool, optional): Формировать ли выходной массив только из развернутых 3D координат
-                                  (для GCN). Переопределяет другие наборы признаков. Defaults to False.
-        lstm_sequence (bool, optional): Формировать ли выходной массив в формате (channels, time, features_per_channel)
-                                        для LSTM. Переопределяет другие форматы вывода и `parametrization`. Defaults to False.
-        feature_selecting (bool, optional): Отбирать ли лучшие признаки лежащие в файле good_features.json. Defaults to False
-
-    Raises:
-        RuntimeError: Если входной `.npy` файл пуст или не найден.
-        FileNotFoundError: Если входной `.npy` файл не найден.
-        AttributeError: Если объекты `TRAIN`/`EVAL` из `paths.py` не имеют нужных атрибутов.
-        ValueError: При некорректных входных данных для функций обработки.
+        cfg (DictConfig): Конфигурация Hydra со всеми параметрами обработки.
 
     Returns:
         None: Функция сохраняет результаты в `.npy` файлы.
     """
+    print("=== Конфигурация препроцессинга ===")
+    print(OmegaConf.to_yaml(cfg.preprocessing))
+    print("=" * 50)
+
+    # Извлекаем параметры из конфига
+    add_3d_points = cfg.preprocessing.features.add_3d_points
+    make_dir = cfg.preprocessing.system.make_dir
+    eval_mode = cfg.preprocessing.system.eval_mode
+    extractor_n_frames = cfg.preprocessing.output_format.extractor_n_frames
+    parametrization = cfg.preprocessing.output_format.parametrization
+    add_new_features = cfg.preprocessing.features.add_new_features
+    distances = cfg.preprocessing.features.distances
+    grad_ang = cfg.preprocessing.features.grad_ang
+    conn_derivative_angles = cfg.preprocessing.features.conn_derivative_angles
+    GCN_TTF = cfg.preprocessing.output_format.GCN_TTF
+    lstm_sequence = cfg.preprocessing.output_format.lstm_sequence
+    feature_selecting = cfg.preprocessing.features.feature_selecting
+    imputation_method = cfg.preprocessing.imputation.method
+    use_masks = cfg.preprocessing.masks.use_masks
+
     # Определение базового пути и режима
-    BASE = EVAL if eval else TRAIN
-    mode_name = "ТЕСТОВЫЙ" if eval else "ОБУЧАЮЩИЙ"
+    BASE = EVAL if eval_mode else TRAIN
+    mode_name = "ТЕСТОВЫЙ" if eval_mode else "ОБУЧАЮЩИЙ"
     print(f"--- Запуск извлечения признаков для режима: {mode_name} ---")
 
-    # Выбор схемы скелета (17 точек)
+    # Выбор схемы скелета
     SCH = KeypointScheme._17
     if make_dir:
         BASE.check_tree()
@@ -567,6 +580,27 @@ def main(
     skipped_count = 0
     error_count = 0
 
+    # Получаем множество исключенных ключевых точек из конфига
+    exclude_rows = set(cfg.preprocessing.skeleton.exclude_keypoints)
+
+    # Настройка функций сглаживания из конфига
+    primary_smooth_func = get_smoothing_function(
+        cfg.preprocessing.smoothing.primary.method,
+        K=cfg.preprocessing.smoothing.primary.K,
+        hann_window_size=cfg.preprocessing.smoothing.hann_window_size,
+        median_window_size=cfg.preprocessing.smoothing.median_window_size,
+        mean_avg_window_size=cfg.preprocessing.smoothing.mean_avg_window_size,
+    )
+
+    feature_smooth_func = get_smoothing_function(
+        cfg.preprocessing.feature_smoothing.method,
+        K=cfg.preprocessing.feature_smoothing.K,
+        window_size=cfg.preprocessing.feature_smoothing.window_size,
+    )
+
+    # Настройка функции импутации
+    imputation_func = get_imputation_function(imputation_method, cfg)
+
     # Итерация по классам
     for class_info in NAMES:
         class_name = class_info.get("class", "UnknownClass")
@@ -574,17 +608,10 @@ def main(
 
         # Итерация по сэмплам внутри класса
         for sample in class_info.get("samples", []):
-            output_name = sample.get(
-                "out"
-            )  # Имя для выходных файлов (.npy с признаками)
-            # Имена .bag файлов нам здесь не нужны, т.к. читаем .npy из KP_3D
+            output_name = sample.get("out")
 
-            # Фильтрация для режима оценки: пропускаем сэмплы без 'eval'
-            # Важно: эта логика относится к ВЫБОРУ сэмплов для обработки в режиме eval,
-            # а не к выбору входного файла (т.к. входной файл всегда BASE.KP_3D / f"{on}.npy")
-            if eval and not sample.get(
-                "eval"
-            ):  # Если режим оценки и поле 'eval' пустое
+            # Фильтрация для режима оценки
+            if eval_mode and not sample.get("eval"):
                 print(
                     f"  Пропуск сэмпла '{output_name}' (режим eval, поле 'eval' пустое)."
                 )
@@ -600,11 +627,9 @@ def main(
 
             # --- Формирование путей и обработка ---
             try:
-                # Путь к входному файлу с 3D координатами
+                # Пути к файлам
                 input_npy_path = BASE.KP_3D / f"{output_name}.npy"
-                # Путь к выходному файлу с признаками
                 output_features_path = BASE.FEATURES / f"{output_name}.npy"
-                # Путь к маске
                 output_mask_path = BASE.FEATURES / f"{output_name}_mask.npy"
 
                 print(f"  Обработка сэмпла: '{output_name}'")
@@ -612,7 +637,6 @@ def main(
                 print(f"    Output Features: {output_features_path}")
 
                 # --- Проверки перед запуском ---
-                # 2. Существует ли входной файл?
                 if not input_npy_path.exists():
                     print(
                         f"    Предупреждение: Входной .npy файл с 3D точками не найден! Пропуск."
@@ -628,21 +652,18 @@ def main(
 
                 # --- Загрузка и основная обработка ---
                 print(f"    Загрузка и обработка 3D координат...")
-                # Загрузка 3D координат
                 keypoints_3d = np.load(input_npy_path)
 
                 # Проверка на пустой файл
                 if keypoints_3d.size == 0:
                     print(f"    Ошибка: Входной файл '{input_npy_path}' пуст! Пропуск.")
-                    # raise RuntimeError(f"ERROR: empty file '{input_npy_path}'") # Можно раскомментировать для прерывания
                     error_count += 1
                     continue
 
-                # Проверка размерности (ожидаем N, 17, 3)
+                # Проверка размерности
                 if (
                     keypoints_3d.ndim != 3
-                    or keypoints_3d.shape[1]
-                    != 17  # TODO: криво, нужно привязать к размерам схемы, но пока не учитываем голову, тяжело
+                    or keypoints_3d.shape[1] != 17
                     or keypoints_3d.shape[2] != 3
                 ):
                     print(
@@ -651,9 +672,7 @@ def main(
                     error_count += 1
                     continue
 
-                # 1. Заполнение пропущенных значений (inplace)
-                # Передаем копию, если не хотим изменять исходный массив (хотя он только что загружен)
-
+                # 1. Создание масок (если включено)
                 point_mask, connection_mask = None, None
                 if use_masks:
                     point_mask, connection_mask = create_masks(keypoints_3d, SCH)
@@ -661,121 +680,95 @@ def main(
                         f"   Созданы маски: point_mask {point_mask.shape}, connection_mask {connection_mask.shape}"
                     )
 
-                if imputation_method == "interpolation":
-                    print("\n\n Использую интреполяцию для заполнения  \n\n")
-                    keypoints_filled = interpolate_missing_values(keypoints_3d)
-                elif imputation_method == "knn":
-                    print("\n\n Использую KNN для заполнения  \n\n")
-                    keypoints_filled = knn_impute_missing_values(keypoints_3d)
-                elif imputation_method == "moving_average":
-                    print("\n\n Использую Moving_Average для заполнения  \n\n")
-                    keypoints_filled = moving_average_impute(keypoints_3d)
-                elif imputation_method == "ml":
-                    print("\n\n Использую ML для заполнения  \n\n")
-                    keypoints_filled = ml_impute_missing_values(keypoints_3d)
-                else:
-                    keypoints_filled = replace_missing_values(keypoints_3d)
+                # 2. Заполнение пропущенных значений
+                if imputation_method:
+                    print(f"\n\n Использую {imputation_method} для заполнения  \n\n")
+                keypoints_filled = imputation_func(keypoints_3d)
 
-                # 2. Первичное сглаживание (экспоненциальное)
-                # Параметры сглаживания
-                # smooth_radius = 7 # Не используется с decay_filt
-                K = 0.007  # Коэффициент для decay_filt
-                # keypoints_filled = mean_avg(keypoints_filled, smooth_radius) # Альтернатива
-                keypoints_filled_smooth = decay_filt(keypoints_filled, K)
+                # 3. Первичное сглаживание (из конфига)
+                print(
+                    f"    Применение сглаживания: {cfg.preprocessing.smoothing.primary.method}"
+                )
+                keypoints_filled_smooth = primary_smooth_func(keypoints_filled)
 
-                # 3. Извлечение базовых признаков (углы, расстояния) из СГЛАЖЕННЫХ данных
-                # Косинусы углов между смежными сегментами
+                # 4. Извлечение базовых признаков из СГЛАЖЕННЫХ данных
                 coss = np.arccos(extract_near_cosines(keypoints_filled_smooth, SCH))
-                # Длины сегментов
                 distss = extract_lengths(keypoints_filled_smooth, SCH)
 
-                # 4. Вычисление производных от СГЛАЖЕННЫХ 3D координат
-                # Первая производная (скорость точек)
-                vects = derive_first(keypoints_filled_smooth)  # Применяется по оси 1!
-                # Длины векторов скорости (модуль скорости сегментов)
+                # 5. Вычисление производных от СГЛАЖЕННЫХ 3D координат
+                vects = derive_first(keypoints_filled_smooth)
                 distss2 = extract_lengths(vects, SCH)
-                # Вторая производная (ускорение точек)
-                vects2 = derive_second(keypoints_filled_smooth)  # Применяется по оси 1!
-                # Длины векторов ускорения
+                vects2 = derive_second(keypoints_filled_smooth)
                 distss3 = extract_lengths(vects2, SCH)
 
-                # 5. Дополнительное сглаживание извлеченных признаков
-                smooth_radius_features = 5  # Не используется с decay_filt
-                K_features = 0.05
-                # Функция для сглаживания признаков
-                func2 = lambda arr: decay_filt(arr, K_features)
+                # 6. Сглаживание извлеченных признаков (из конфига)
+                print(
+                    f"    Применение сглаживания признаков: {cfg.preprocessing.feature_smoothing.method}"
+                )
 
                 if use_masks:
                     print("    Применение масок к признакам...")
-                    # Маски для длин и углов (зависят от связей)
                     coss = coss * connection_mask
                     distss = distss * connection_mask
                     distss2 = distss2 * connection_mask
                     distss3 = distss3 * connection_mask
-                # Сглаживание базовых признаков
-                coss = func2(coss)
-                distss = func2(distss)
-                distss2 = func2(distss2)
-                distss3 = func2(distss3)
+
+                # Применяем сглаживание признаков
+                coss = feature_smooth_func(coss)
+                distss = feature_smooth_func(distss)
+                distss2 = feature_smooth_func(distss2)
+                distss3 = feature_smooth_func(distss3)
 
                 # Производные от сглаженных косинусов
-                dcos = derive_first(coss)  # Применяется по оси 1!
-                ddcos = derive_second(dcos)  # Применяется по оси 1!
+                dcos = derive_first(coss)
+                ddcos = derive_second(dcos)
 
-                # 6. Расчет дополнительных признаков (если включены)
+                # 7. Формирование базового набора признаков
                 feature_arrays = [coss, distss, dcos, ddcos, distss2, distss3]
 
                 if add_3d_points:
-                    # Добавляем развернутые сглаженные 3D координаты
-                    # Форма keypoints_filled_smooth: (n_frames, 17, 3) -> (n_frames, 51)
                     points_flat = keypoints_filled_smooth.reshape(
                         keypoints_filled_smooth.shape[0], -1
                     )
-
                     if use_masks:
-                        # Маска для точек применяется к развернутым координатам
-                        points_mask = np.repeat(
-                            point_mask, 3, axis=1
-                        )  # (n_frames, n_keypoints * 3)
+                        points_mask = np.repeat(point_mask, 3, axis=1)
                         points_flat = points_flat * points_mask
                     feature_arrays.append(points_flat)
 
-                # Блок дополнительных новых признаков
+                # 8. Блок дополнительных новых признаков (из конфига)
                 if add_new_features:
                     if grad_ang:
-                        # Косинусы углов между векторами скорости (производными 1-го порядка)
-                        grad_ang_1 = func2(np.arccos(extract_near_cosines(vects, SCH)))
-                        # Косинусы углов между векторами ускорения (производными 2-го порядка)
-                        grad_ang_2 = func2(np.arccos(extract_near_cosines(vects2, SCH)))
+                        grad_ang_1 = feature_smooth_func(
+                            np.arccos(extract_near_cosines(vects, SCH))
+                        )
+                        grad_ang_2 = feature_smooth_func(
+                            np.arccos(extract_near_cosines(vects2, SCH))
+                        )
                         if use_masks:
                             grad_ang_1 = grad_ang_1 * connection_mask
                             grad_ang_2 = grad_ang_2 * connection_mask
                         feature_arrays.extend([grad_ang_1, grad_ang_2])
 
                     if distances:
-                        # Производные от длин сегментов
-                        lengths2 = func2(derive_first(distss))  # Применяется по оси 1!
-                        lengths3 = func2(derive_second(distss))  # Применяется по оси 1!
+                        lengths2 = feature_smooth_func(derive_first(distss))
+                        lengths3 = feature_smooth_func(derive_second(distss))
                         if use_masks:
                             lengths2 = lengths2 * connection_mask
                             lengths3 = lengths3 * connection_mask
                         feature_arrays.extend([lengths2, lengths3])
 
                     if conn_derivative_angles:
-                        # Углы между сегментами и производными (скоростью) точек
                         conn_deriv_angles = extract_connection_derivative_angles(
                             keypoints_filled_smooth, vects, SCH
                         )
-                        conn_deriv_angles = func2(conn_deriv_angles)
+                        conn_deriv_angles = feature_smooth_func(conn_deriv_angles)
                         if use_masks:
                             conn_deriv_angles = conn_deriv_angles * connection_mask
                         feature_arrays.append(conn_deriv_angles)
 
-                # 7. Объединение всех выбранных признаков
+                # 9. Объединение всех выбранных признаков
                 try:
-                    result_array = np.concatenate(
-                        feature_arrays, axis=1
-                    )  # Объединяем по оси признаков
+                    result_array = np.concatenate(feature_arrays, axis=1)
                     print(f"    Промежуточная форма признаков: {result_array.shape}")
                 except ValueError as e:
                     print(f"    Ошибка конкатенации признаков: {e}")
@@ -783,11 +776,10 @@ def main(
                         f"    Формы массивов для конкатенации: {[arr.shape for arr in feature_arrays]}"
                     )
                     error_count += 1
-                    continue  # Пропускаем этот сэмпл
+                    continue
 
-                # 8. Специальное форматирование / Постобработка
+                # 10. Специальное форматирование (из конфига)
                 if GCN_TTF:
-                    # Для GCN оставляем только развернутые 3D координаты
                     print("    Форматирование для GCN...")
                     result_array = keypoints_filled_smooth.reshape(
                         keypoints_filled_smooth.shape[0], -1
@@ -797,20 +789,18 @@ def main(
                         result_array = result_array * points_mask
 
                 elif lstm_sequence:
-                    # Форматирование для LSTM: (каналы, время, признаки_на_канал)
                     print("    Форматирование для LSTM...")
-                    # Целевое количество признаков на канал (например, 16)
-                    TARGET_LSTM_FEATURES = 16
+                    TARGET_LSTM_FEATURES = (
+                        cfg.preprocessing.lstm_formatting.target_features_per_channel
+                    )
 
                     def pad_features(arr, target_size=TARGET_LSTM_FEATURES):
-                        """Дополняет признаки нулями до target_size по оси 1."""
                         if arr.shape[1] < target_size:
                             pad_width = ((0, 0), (0, target_size - arr.shape[1]))
                             return np.pad(
                                 arr, pad_width, mode="constant", constant_values=0
                             )
                         elif arr.shape[1] > target_size:
-                            # Обрезаем, если признаков больше
                             return arr[:, :target_size]
                         return arr
 
@@ -824,32 +814,28 @@ def main(
 
                     # Добавляем ось для каналов и объединяем
                     lstm_feature_arrays = [
-                        np.expand_dims(coss_pad, axis=0),  # (1, T, 16)
-                        np.expand_dims(distss_pad, axis=0),  # (1, T, 16)
-                        np.expand_dims(dcos_pad, axis=0),  # (1, T, 16)
-                        np.expand_dims(ddcos_pad, axis=0),  # (1, T, 16)
-                        np.expand_dims(distss2_pad, axis=0),  # (1, T, 16)
-                        np.expand_dims(distss3_pad, axis=0),  # (1, T, 16)
+                        np.expand_dims(coss_pad, axis=0),
+                        np.expand_dims(distss_pad, axis=0),
+                        np.expand_dims(dcos_pad, axis=0),
+                        np.expand_dims(ddcos_pad, axis=0),
+                        np.expand_dims(distss2_pad, axis=0),
+                        np.expand_dims(distss3_pad, axis=0),
                     ]
-                    # Можно добавить другие признаки сюда, если add_new_features=True, аналогично их обработав
-
-                    result_array = np.concatenate(
-                        lstm_feature_arrays, axis=0
-                    )  # Форма: (num_channels, T, 16)
+                    result_array = np.concatenate(lstm_feature_arrays, axis=0)
                     print(f"    Итоговая форма для LSTM: {result_array.shape}")
 
                 elif parametrization:
-                    # Применение скользящего окна, если не GCN и не LSTM
                     print("    Применение скользящего окна...")
                     if (
-                        result_array.shape[0] < 30
-                    ):  # Проверка на минимальную длину для окна
+                        result_array.shape[0]
+                        < cfg.preprocessing.sliding_window.window_size
+                    ):
                         print(
                             f"    Предупреждение: Недостаточно кадров ({result_array.shape[0]}) для скользящего окна. Пропуск параметризации."
                         )
                     elif extractor_n_frames:
-                        window_size = 30
-                        step = 3
+                        window_size = cfg.preprocessing.sliding_window.window_size
+                        step = cfg.preprocessing.sliding_window.step
                         result_array = sliding_window(
                             result_array, window_size=window_size, step=step
                         )
@@ -857,8 +843,8 @@ def main(
                             f"    Применено sliding_window(window={window_size}, step={step})"
                         )
                     else:
-                        window_size_n = 5
-                        step_n = 2
+                        window_size_n = cfg.preprocessing.sliding_window.n
+                        step_n = cfg.preprocessing.sliding_window.step_sliding
                         result_array = sliding(
                             result_array, n=window_size_n, step=step_n
                         )
@@ -866,19 +852,18 @@ def main(
                             f"    Применено sliding(n={window_size_n}, step={step_n})"
                         )
 
-                # 8.1 отсечение признаков
+                # 11. Отсечение признаков (из конфига)
                 if feature_selecting:
                     filtered_result_array = result_array[
                         :, GOOD_FEATURES["good_feature_indices"]
                     ]
                     result_array = filtered_result_array
-                # 9. Сохранение результата
+
+                # 12. Сохранение результата
                 print(
                     f"    Сохранение итогового массива признаков формы {result_array.shape} в {output_features_path}"
                 )
-                np.save(
-                    output_features_path, result_array.astype(np.float32)
-                )  # Сохраняем как float32
+                np.save(output_features_path, result_array.astype(np.float32))
 
                 if use_masks:
                     print(f"    Сохранение маски связей в {output_mask_path}")
@@ -905,9 +890,6 @@ def main(
 
                 traceback.print_exc()
                 error_count += 1
-            # --- Конец блока try/except для сэмпла ---
-        # --- Конец внутреннего цикла по сэмплам ---
-    # --- Конец внешнего цикла по классам ---
 
     print(f"\n--- Статистика извлечения признаков ({mode_name}) ---")
     print(f"Успешно обработано (создано .npy): {processed_count}")
@@ -916,19 +898,6 @@ def main(
     print(f"--- Обработка режима {mode_name} завершена ---")
 
 
-# --- Точка входа ---
 if __name__ == "__main__":
-    # Пример вызова для обучающего набора с параметрами по умолчанию
-    main(
-        eval=False,
-        make_dir=True,
-        add_new_features=False,
-        distances=False,
-        grad_ang=False,
-        conn_derivative_angles=False,
-        parametrization=False,
-        extractor_n_frames=False,
-        feature_selecting=False,
-        imputation_method="",
-        use_masks=False,
-    )
+    # Запуск с Hydra (параметры берутся из конфига)
+    main()
