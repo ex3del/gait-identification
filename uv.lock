@@ -1785,6 +1785,95 @@ wheels = [
 ]
 
 [[package]]
+name = "gait-identification"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "dvc", extra = ["all"] },
+    { name = "gevent" },
+    { name = "hydra-core" },
+    { name = "joblib" },
+    { name = "lightning" },
+    { name = "matplotlib" },
+    { name = "mlflow" },
+    { name = "numpy" },
+    { name = "onnx" },
+    { name = "onnxruntime" },
+    { name = "pandas" },
+    { name = "pathlib-abc" },
+    { name = "requests" },
+    { name = "scikit-learn" },
+    { name = "scipy" },
+    { name = "seaborn" },
+    { name = "skl2onnx" },
+    { name = "tensorboard" },
+    { name = "torch", version = "2.5.1+cu121", source = { registry = "https://download.pytorch.org/whl/cu121" }, marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "torch", version = "2.7.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' and sys_platform != 'win32'" },
+    { name = "torchaudio", version = "2.5.1+cu121", source = { registry = "https://download.pytorch.org/whl/cu121" }, marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "torchaudio", version = "2.7.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' and sys_platform != 'win32'" },
+    { name = "torchvision", version = "0.20.1+cu121", source = { registry = "https://download.pytorch.org/whl/cu121" }, marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
+    { name = "torchvision", version = "0.22.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' and sys_platform != 'win32'" },
+    { name = "tritonclient", extra = ["all"] },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "autoflake" },
+    { name = "autopep8" },
+    { name = "black" },
+    { name = "flake8" },
+    { name = "isort" },
+    { name = "mypy" },
+    { name = "pre-commit" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "dvc", extras = ["all"], specifier = ">=3.40.0" },
+    { name = "gevent", specifier = ">=23.0.0" },
+    { name = "hydra-core", specifier = ">=1.3.0" },
+    { name = "joblib", specifier = ">=1.4.2" },
+    { name = "lightning", specifier = ">=2.1.0" },
+    { name = "matplotlib", specifier = ">=3.10.1" },
+    { name = "mlflow", specifier = ">=2.10.0" },
+    { name = "numpy", specifier = "==1.26.4" },
+    { name = "onnx", specifier = ">=1.15.0" },
+    { name = "onnxruntime", specifier = ">=1.17.0" },
+    { name = "pandas", specifier = ">=2.2.2" },
+    { name = "pathlib-abc", specifier = ">=0.1.1" },
+    { name = "requests", specifier = ">=2.25.0" },
+    { name = "scikit-learn", specifier = ">=1.5.1" },
+    { name = "scipy", specifier = ">=1.14.0" },
+    { name = "seaborn", specifier = ">=0.13.2" },
+    { name = "skl2onnx", specifier = ">=1.16.0" },
+    { name = "tensorboard", specifier = ">=2.15.0" },
+    { name = "torch", marker = "sys_platform != 'linux' and sys_platform != 'win32'", specifier = ">=2.3.0" },
+    { name = "torch", marker = "sys_platform == 'linux' or sys_platform == 'win32'", specifier = ">=2.3.0", index = "https://download.pytorch.org/whl/cu121" },
+    { name = "torchaudio", marker = "sys_platform != 'linux' and sys_platform != 'win32'", specifier = ">=2.3.0" },
+    { name = "torchaudio", marker = "sys_platform == 'linux' or sys_platform == 'win32'", specifier = ">=2.3.0", index = "https://download.pytorch.org/whl/cu121" },
+    { name = "torchvision", marker = "sys_platform != 'linux' and sys_platform != 'win32'", specifier = ">=0.18.0" },
+    { name = "torchvision", marker = "sys_platform == 'linux' or sys_platform == 'win32'", specifier = ">=0.18.0", index = "https://download.pytorch.org/whl/cu121" },
+    { name = "tritonclient", extras = ["all"], specifier = ">=2.40.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "autoflake", specifier = ">=2.3.1" },
+    { name = "autopep8", specifier = ">=2.3.2" },
+    { name = "black", specifier = ">=25.1.0" },
+    { name = "flake8", specifier = ">=7.2.0" },
+    { name = "isort", specifier = ">=6.0.1" },
+    { name = "mypy", specifier = ">=1.16.0" },
+    { name = "pre-commit", specifier = ">=4.0.1" },
+    { name = "pytest", specifier = ">=8.3.5" },
+    { name = "pytest-cov", specifier = ">=6.1.1" },
+    { name = "ruff", specifier = ">=0.11.13" },
+]
+
+[[package]]
 name = "gcsfs"
 version = "2025.5.1"
 source = { registry = "https://pypi.org/simple" }
@@ -2787,91 +2876,6 @@ wheels = [
 ]
 
 [[package]]
-name = "ml-project"
-version = "0.1.0"
-source = { virtual = "." }
-dependencies = [
-    { name = "dvc", extra = ["all"] },
-    { name = "gevent" },
-    { name = "hydra-core" },
-    { name = "joblib" },
-    { name = "lightning" },
-    { name = "matplotlib" },
-    { name = "mlflow" },
-    { name = "numpy" },
-    { name = "onnx" },
-    { name = "onnxruntime" },
-    { name = "pandas" },
-    { name = "scikit-learn" },
-    { name = "scipy" },
-    { name = "seaborn" },
-    { name = "skl2onnx" },
-    { name = "tensorboard" },
-    { name = "torch", version = "2.5.1+cu121", source = { registry = "https://download.pytorch.org/whl/cu121" }, marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "torch", version = "2.7.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' and sys_platform != 'win32'" },
-    { name = "torchaudio", version = "2.5.1+cu121", source = { registry = "https://download.pytorch.org/whl/cu121" }, marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "torchaudio", version = "2.7.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' and sys_platform != 'win32'" },
-    { name = "torchvision", version = "0.20.1+cu121", source = { registry = "https://download.pytorch.org/whl/cu121" }, marker = "sys_platform == 'linux' or sys_platform == 'win32'" },
-    { name = "torchvision", version = "0.22.0", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform != 'linux' and sys_platform != 'win32'" },
-    { name = "tritonclient", extra = ["all"] },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "autoflake" },
-    { name = "autopep8" },
-    { name = "black" },
-    { name = "flake8" },
-    { name = "isort" },
-    { name = "mypy" },
-    { name = "pre-commit" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "dvc", extras = ["all"], specifier = ">=3.40.0" },
-    { name = "gevent", specifier = ">=23.0.0" },
-    { name = "hydra-core", specifier = ">=1.3.0" },
-    { name = "joblib", specifier = ">=1.4.2" },
-    { name = "lightning", specifier = ">=2.1.0" },
-    { name = "matplotlib", specifier = ">=3.10.1" },
-    { name = "mlflow", specifier = ">=2.10.0" },
-    { name = "numpy", specifier = "==1.26.4" },
-    { name = "onnx", specifier = ">=1.15.0" },
-    { name = "onnxruntime", specifier = ">=1.17.0" },
-    { name = "pandas", specifier = ">=2.2.2" },
-    { name = "scikit-learn", specifier = ">=1.5.1" },
-    { name = "scipy", specifier = ">=1.14.0" },
-    { name = "seaborn", specifier = ">=0.13.2" },
-    { name = "skl2onnx", specifier = ">=1.16.0" },
-    { name = "tensorboard", specifier = ">=2.15.0" },
-    { name = "torch", marker = "sys_platform != 'linux' and sys_platform != 'win32'", specifier = ">=2.3.0" },
-    { name = "torch", marker = "sys_platform == 'linux' or sys_platform == 'win32'", specifier = ">=2.3.0", index = "https://download.pytorch.org/whl/cu121" },
-    { name = "torchaudio", marker = "sys_platform != 'linux' and sys_platform != 'win32'", specifier = ">=2.3.0" },
-    { name = "torchaudio", marker = "sys_platform == 'linux' or sys_platform == 'win32'", specifier = ">=2.3.0", index = "https://download.pytorch.org/whl/cu121" },
-    { name = "torchvision", marker = "sys_platform != 'linux' and sys_platform != 'win32'", specifier = ">=0.18.0" },
-    { name = "torchvision", marker = "sys_platform == 'linux' or sys_platform == 'win32'", specifier = ">=0.18.0", index = "https://download.pytorch.org/whl/cu121" },
-    { name = "tritonclient", extras = ["all"], specifier = ">=2.40.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "autoflake", specifier = ">=2.3.1" },
-    { name = "autopep8", specifier = ">=2.3.2" },
-    { name = "black", specifier = ">=25.1.0" },
-    { name = "flake8", specifier = ">=7.2.0" },
-    { name = "isort", specifier = ">=6.0.1" },
-    { name = "mypy", specifier = ">=1.16.0" },
-    { name = "pre-commit", specifier = ">=4.0.1" },
-    { name = "pytest", specifier = ">=8.3.5" },
-    { name = "pytest-cov", specifier = ">=6.1.1" },
-    { name = "ruff", specifier = ">=0.11.13" },
-]
-
-[[package]]
 name = "mlflow"
 version = "2.22.1"
 source = { registry = "https://pypi.org/simple" }
@@ -3587,6 +3591,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/25/b0/98d6ae2e1abac4f35230aa756005e8654649d305df9a28b16b9ae4353bff/pandas-2.2.3-cp313-cp313t-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:1db71525a1538b30142094edb9adc10be3f3e176748cd7acc2240c2f2e5aa3a4", size = 11871013, upload-time = "2024-09-20T13:09:44.39Z" },
     { url = "https://files.pythonhosted.org/packages/cc/57/0f72a10f9db6a4628744c8e8f0df4e6e21de01212c7c981d31e50ffc8328/pandas-2.2.3-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:15c0e1e02e93116177d29ff83e8b1619c93ddc9c49083f237d4312337a61165d", size = 15711620, upload-time = "2024-09-20T19:02:20.639Z" },
     { url = "https://files.pythonhosted.org/packages/ab/5f/b38085618b950b79d2d9164a711c52b10aefc0ae6833b96f626b7021b2ed/pandas-2.2.3-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:ad5b65698ab28ed8d7f18790a0dc58005c7629f227be9ecc1072aa74c0c1d43a", size = 13098436, upload-time = "2024-09-20T13:09:48.112Z" },
+]
+
+[[package]]
+name = "pathlib-abc"
+version = "0.4.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/fd/b3/c16e73ac50ebea74eb41dd2b52882c3f1a1c35eec43aac370e0188a5da76/pathlib_abc-0.4.3.tar.gz", hash = "sha256:cc9b3a375d29b32d0a57145ad9ce5f340ab249729ff7ed130bc7e2dbd45cad0b", size = 33820, upload-time = "2025-04-28T20:17:46.275Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/31/df/050b3c08b36d4af92d8c57e3f4dcff987e719aff3ce8e3c281a6d5a6a68a/pathlib_abc-0.4.3-py3-none-any.whl", hash = "sha256:0c1ebfbc8e777e08128cd201c69cd34170bb6bc36067f77688bc1f2c845e0527", size = 20293, upload-time = "2025-04-28T20:17:44.354Z" },
 ]
 
 [[package]]
