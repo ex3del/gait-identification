@@ -1,8 +1,10 @@
 # YOU NEED parametrization=False in feature_bake.py TOW MAKE THIS SCRIPT WORK
 import os
-import numpy as np
+
 import matplotlib.pyplot as plt
-from .paths.paths import TRAIN, EVAL, NAMES, PLOTS
+import numpy as np
+
+from .paths.paths import EVAL, NAMES, PLOTS, TRAIN
 
 eval_dir = EVAL.FEATURES
 feature_dir = TRAIN.FEATURES

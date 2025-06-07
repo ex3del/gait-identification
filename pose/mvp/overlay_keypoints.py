@@ -1,9 +1,11 @@
 from pathlib import Path
-import pyrealsense2 as rs
-import numpy as np
-import cv2
 from typing import Union
-from .paths.paths import TRAIN, EVAL, NAMES
+
+import cv2
+import numpy as np
+import pyrealsense2 as rs
+
+from .paths.paths import EVAL, NAMES, TRAIN
 
 
 def overlay_3d_keypoints_on_video(

@@ -3,19 +3,16 @@
 с использованием модели YOLO и сохранения их в текстовые файлы.
 """
 
-from ultralytics import YOLO
 from pathlib import Path
-from typing import Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
+
+from ultralytics import YOLO
 
 # Импорт конфигурации путей и списка файлов
-from .paths.paths import (
-    TRAIN,
-    EVAL,
-    NAMES,
-)
+from .paths.paths import EVAL, NAMES, TRAIN
 
 if TYPE_CHECKING:
-    from os import PathLike
+    pass
 
 
 def extract_keypoints_to_txt(

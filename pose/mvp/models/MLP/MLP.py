@@ -18,43 +18,35 @@
 8. Выполняет финальную оценку лучшей модели на тестовом наборе и выводит classification report.
 """
 
-import os
-import pprint
 import random
-from typing import TYPE_CHECKING, Dict, List, Tuple, Any
-from warnings import warn
 from pathlib import Path  # Используем pathlib для путей
+from typing import TYPE_CHECKING, Dict, List, Tuple
+from warnings import warn
 
-from joblib import dump, load  # Добавляем load, если нужно будет загружать scaler
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.nn as nn
-import torch.optim as optim
 import torch.nn.functional as F
-
-from torch.utils.data import Dataset, DataLoader
-from sklearn.preprocessing import StandardScaler
+import torch.optim as optim
+from joblib import dump, load  # Добавляем load, если нужно будет загружать scaler
 from sklearn.metrics import (
+    ConfusionMatrixDisplay,
     accuracy_score,
+    auc,
+    classification_report,
+    confusion_matrix,
     f1_score,
     precision_score,
     recall_score,
-    classification_report,
-    confusion_matrix,
-    ConfusionMatrixDisplay,
-    roc_auc_score,
     roc_curve,
-    auc,
 )
-from sklearn.preprocessing import label_binarize
-import matplotlib.pyplot as plt
-import seaborn as sns
+from sklearn.preprocessing import StandardScaler, label_binarize
+from torch.utils.data import DataLoader, Dataset
 
 # Импорт путей и функции загрузки данных
-from ...paths.paths import TRAIN, EVAL, NAMES, MODELS
-
-from .load import load_and_split_data, TRAIN_RATIO
-
+from ...paths.paths import MODELS, NAMES
+from .load import load_and_split_data
 
 if TYPE_CHECKING:
     pass

@@ -10,17 +10,15 @@
    исходного .npy файла).
 """
 
+import pprint
+from pathlib import Path
+from typing import Any, Dict, List, Tuple
+from warnings import warn
+
 import numpy as np
 import torch
-from pathlib import Path
-import pprint
-from warnings import warn
-from typing import Dict, Tuple, Any, List
 
-from ...paths.paths import (
-    TRAIN,
-    NAMES,
-)
+from ...paths.paths import NAMES
 
 # --- Константы ---
 TRAIN_RATIO = (

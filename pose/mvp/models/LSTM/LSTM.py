@@ -65,45 +65,41 @@
 
 """
 
-import os
 import random
-import pprint
+import traceback
+from pathlib import Path
+from typing import TYPE_CHECKING, Dict, List, Tuple, Union
+from warnings import warn
+
+import matplotlib.pyplot as plt
 import numpy as np
+import seaborn as sns
 import torch
 import torch.nn as nn
-import torch.optim as optim
 import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader
-from sklearn.preprocessing import StandardScaler
+import torch.optim as optim
+from joblib import dump
 from sklearn.metrics import (
+    ConfusionMatrixDisplay,
     accuracy_score,
+    auc,
+    classification_report,
+    confusion_matrix,
     f1_score,
     precision_score,
     recall_score,
-    classification_report,
-    confusion_matrix,
-    ConfusionMatrixDisplay,
-    roc_auc_score,
     roc_curve,
-    auc,
 )
-from sklearn.preprocessing import label_binarize
-import matplotlib.pyplot as plt
-import seaborn as sns
-from joblib import dump, load
-from pathlib import Path
-from typing import List, Tuple, Dict, Union, Any, TYPE_CHECKING
-from warnings import warn
-import traceback
+from sklearn.preprocessing import StandardScaler, label_binarize
+from torch.utils.data import DataLoader, Dataset
 
-from ...paths.paths import TRAIN, EVAL, NAMES, MODELS
+from ...paths.paths import MODELS, NAMES, TRAIN
+from .load import TRAIN_RATIO  # Импортируем, если используется только здесь
 from .load import (
-    create_sequences_from_files,
     CLASS_NAME_TO_LABEL_MAP,
-    LABEL_TO_CLASS_NAME_MAP,
     CLASS_NAMES_ORDERED,
     NUM_CLASSES,
-    TRAIN_RATIO,  # Импортируем, если используется только здесь
+    create_sequences_from_files,
 )
 
 # --- Импорт pandas опционально для графиков ---

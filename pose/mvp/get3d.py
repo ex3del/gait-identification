@@ -13,19 +13,15 @@
 и синхронизированы по кадрам.
 """
 
-from pathlib import Path
 import copy
+from pathlib import Path
 from typing import TYPE_CHECKING
 
-import pyrealsense2 as rs
 import numpy as np
+import pyrealsense2 as rs
 
 # Импорт конфигурации путей и списка файлов
-from .paths.paths import (
-    TRAIN,
-    EVAL,
-    NAMES,
-)
+from .paths.paths import EVAL, NAMES, TRAIN
 
 if TYPE_CHECKING:
     # Уточняем Union для поддержки старых версий Python, если нужно

@@ -12,49 +12,42 @@
 """
 
 import os
-import pprint
-from typing import TYPE_CHECKING, Dict, List, Tuple, Any
-from warnings import warn
 from pathlib import Path
-from collections import Counter
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple
+from warnings import warn
 
-from joblib import load  # Для загрузки scaler
 import numpy as np
+import pandas as pd  # Для сохранения отчета
 import torch
 import torch.nn as nn
 
 # import torch.optim as optim # Оптимизатор не нужен для инференса
-import torch.nn.functional as F
-
-from torch.utils.data import Dataset, DataLoader
+from joblib import load  # Для загрузки scaler
 
 # from sklearn.preprocessing import StandardScaler # StandardScaler загружается, не создается
-from sklearn.metrics import (
+from sklearn.metrics import f1_score  # Могут быть полезны для оценки итогового репорта
+from sklearn.metrics import (  # confusion_matrix, ConfusionMatrixDisplay, # Можно добавить для визуализации
     accuracy_score,
-    f1_score,  # Могут быть полезны для оценки итогового репорта
     classification_report,
-    # confusion_matrix, ConfusionMatrixDisplay, # Можно добавить для визуализации
 )
-import pandas as pd  # Для сохранения отчета
-
+from torch.utils.data import DataLoader, Dataset
 
 from ...feature_bake import main as feature_bake
 
 try:
-    from ...paths.paths import TRAIN, EVAL, NAMES, MODELS
+    from ...paths.paths import EVAL, MODELS, NAMES
 except ImportError as e:
     print(f"Ошибка импорта путей: {e}. Убедитесь в корректности структуры проекта.")
     exit(1)
 
 try:
-    from .MLP import (
-        MLPClassifier,
-        MLPClassifier_deep,
-        # GaitDataset,
-        USE_DEEP_MODEL,
+    from .MLP import (  # GaitDataset,
+        DROPOUT_RATE,
         HIDDEN_SIZE,
         HIDDEN_SIZE_2,
-        DROPOUT_RATE,
+        USE_DEEP_MODEL,
+        MLPClassifier,
+        MLPClassifier_deep,
     )
 except ImportError:
     # Если импорт не удался, копируем определения сюда (упрощенный вариант)

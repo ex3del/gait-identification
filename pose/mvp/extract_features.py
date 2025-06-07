@@ -1,12 +1,11 @@
 import numpy as np
-import sys
-from .paths.paths import OUT_PATH, NAMES
-
 from features.extract_lengths import (
+    KeypointScheme,
     extract_lengths,
     extract_near_cosines,
-    KeypointScheme,
 )
+
+from .paths.paths import NAMES, OUT_PATH
 
 
 def main(eval_: bool = False):

@@ -12,56 +12,93 @@
 """
 
 import os
-import pprint
-from typing import TYPE_CHECKING, Dict, List, Tuple, Any
-from warnings import warn
-from pathlib import Path
 from collections import Counter
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple
+from warnings import warn
 
-from joblib import load  # Для загрузки scaler
 import numpy as np
+import pandas as pd  # Для сохранения отчета
 import torch
 import torch.nn as nn
 
 # import torch.optim as optim # Оптимизатор не нужен для инференса
-import torch.nn.functional as F
-
-from torch.utils.data import Dataset, DataLoader
+from joblib import load  # Для загрузки scaler
 
 # from sklearn.preprocessing import StandardScaler # StandardScaler загружается, не создается
-from sklearn.metrics import (
+from sklearn.metrics import f1_score  # Могут быть полезны для оценки итогового репорта
+from sklearn.metrics import (  # confusion_matrix, ConfusionMatrixDisplay, # Можно добавить для визуализации
     accuracy_score,
-    f1_score,  # Могут быть полезны для оценки итогового репорта
     classification_report,
-    # confusion_matrix, ConfusionMatrixDisplay, # Можно добавить для визуализации
 )
-import pandas as pd  # Для сохранения отчета
-
+from torch.utils.data import DataLoader, Dataset
 
 from ...feature_bake import main as feature_bake
 
 try:
-    from ...paths.paths import TRAIN, EVAL, NAMES, MODELS
+    from ...paths.paths import EVAL, MODELS, NAMES
 except ImportError as e:
     print(f"Ошибка импорта путей: {e}. Убедитесь в корректности структуры проекта.")
     exit(1)
 
 try:
-    from .MLP import (
-        MLPClassifier,
-        MLPClassifier_deep,
-        # GaitDataset,
-        USE_DEEP_MODEL,
+    from .MLP import (  # GaitDataset,
+        DROPOUT_RATE,
         HIDDEN_SIZE,
         HIDDEN_SIZE_2,
-        DROPOUT_RATE,
         SCALER,
+        USE_DEEP_MODEL,
+        MLPClassifier,
+        MLPClassifier_deep,
     )
 except ImportError:
     # Если импорт не удался, копируем определения сюда (упрощенный вариант)
     print(
         "Предупреждение: Не удалось импортировать определения моделей/Dataset из .MLP. Используются локальные определения."
     )
+    USE_DEEP_MODEL = True
+    HIDDEN_SIZE = 251
+    HIDDEN_SIZE_2 = 81
+    DROPOUT_RATE = 0.1
+    SCALER = None  # Not used in eval directly, but good practice to define
+
+    class MLPClassifier(nn.Module):
+        def __init__(self, input_size, hidden_size, num_classes, dropout_rate):
+            super().__init__()
+            self.fc0 = nn.Linear(input_size, hidden_size)
+            self.fc1 = nn.Linear(hidden_size, num_classes)
+            self.dropout = nn.Dropout(dropout_rate)
+
+        def forward(self, x):
+            x = x.squeeze(1)
+            out = self.fc0(x)
+            out = torch.tanh(out)
+            out = self.dropout(out)
+            out = self.fc1(out)
+            return out
+
+    class MLPClassifier_deep(nn.Module):
+        def __init__(
+            self, input_size, hidden_size, hidden_size_2, num_classes, dropout_rate
+        ):
+            super().__init__()
+            self.fc0 = nn.Linear(input_size, hidden_size)
+            self.fc1 = nn.Linear(hidden_size, hidden_size_2)
+            self.fc2 = nn.Linear(hidden_size_2, num_classes)
+            self.dropout = nn.Dropout(dropout_rate)
+
+        def forward(self, x):
+            x = x.squeeze(1)
+            out = self.fc0(x)
+            out = torch.tanh(out)
+            out = self.dropout(out)
+            out = self.fc1(out)
+            out = torch.tanh(out)
+            out = self.dropout(out)
+            out = self.fc2(out)
+            return out
+
+
 if TYPE_CHECKING:
     pass
 

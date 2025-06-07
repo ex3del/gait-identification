@@ -9,37 +9,26 @@
 для использования в различных моделях машинного обучения.
 """
 
-from pathlib import Path
-import os
 from typing import TYPE_CHECKING
-from enum import Enum, auto
-import json
 
 import numpy as np
 import scipy
-from scipy.signal import medfilt
 from scipy.interpolate import interp1d
-from sklearn.impute import KNNImputer
+from scipy.signal import medfilt
 from sklearn.experimental import enable_iterative_imputer
-from sklearn.impute import IterativeImputer
+from sklearn.impute import IterativeImputer, KNNImputer
 from sklearn.tree import DecisionTreeRegressor
 
-from .paths import (
-    TRAIN,
-    EVAL,
-    NAMES,
-    GOOD_FEATURES,
-)
 from ..features.extract_lengths import (
+    KeypointScheme,
+    extract_connection_derivative_angles,
     extract_lengths,
     extract_near_cosines,
-    extract_connection_derivative_angles,
-    KeypointScheme,
 )
+from .paths.paths import EVAL, GOOD_FEATURES, NAMES, TRAIN
 
 if TYPE_CHECKING:
-    from pathlib import Path
-    from typing import Union
+    pass
 
 
 def smoothen(arr: np.ndarray, n: int) -> np.ndarray:
@@ -937,8 +926,8 @@ if __name__ == "__main__":
         distances=False,
         grad_ang=False,
         conn_derivative_angles=False,
-        parametrization=True,
-        extractor_n_frames=True,
+        parametrization=False,
+        extractor_n_frames=False,
         feature_selecting=False,
         imputation_method="",
         use_masks=False,

@@ -11,15 +11,14 @@
 у которых задано непустое значение в поле 'eval'.
 """
 
-import numpy as np
-import os
-from pathlib import Path
 import traceback  # Для подробного вывода ошибок
 from warnings import warn  # Используем warn для некритичных сообщений
 
+import numpy as np
+
 # --- Импорт пользовательских модулей ---
 try:
-    from .paths.paths import TRAIN, EVAL, NAMES
+    from .paths.paths import EVAL, NAMES, TRAIN
 except ImportError as e:
     print(f"КРИТИЧЕСКАЯ ОШИБКА: Не удалось импортировать зависимости из paths: {e}")
     print("Убедитесь, что структура проекта верна и файл paths.py доступен.")

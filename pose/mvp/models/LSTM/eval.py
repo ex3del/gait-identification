@@ -13,47 +13,37 @@
 """
 
 import os
-import pprint
-import random
+import traceback
+from collections import defaultdict
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Dict, List, Tuple
+from warnings import warn
+
 import numpy as np
 import torch
 import torch.backends.cudnn
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader
 from joblib import load as joblib_load
-from pathlib import Path
-from typing import List, Tuple, Dict, Union, Any, TYPE_CHECKING
-from warnings import warn
-from collections import Counter, defaultdict
-import traceback
-
+from torch.utils.data import DataLoader, Dataset
 
 from ...feature_bake import main as feature_bake
 
-
 # --- Импорт пользовательских модулей ---
 try:
-    from ...paths.paths import EVAL, NAMES, MODELS
-    from .load import (
-        CLASS_NAME_TO_LABEL_MAP,
-        LABEL_TO_CLASS_NAME_MAP,
-        CLASS_NAMES_ORDERED,
-        NUM_CLASSES,
-    )
+    from ...paths.paths import EVAL, MODELS, NAMES
+    from .load import CLASS_NAME_TO_LABEL_MAP, LABEL_TO_CLASS_NAME_MAP, NUM_CLASSES
     from .LSTM import (
-        GaitClassifierLSTM,
+        FFN_HIDDEN_SIZE,
+        HIDDEN_SIZE,
+        INPUT_SIZE_PER_FRAME,
+        NUM_LAYERS,
         SEQUENCE_LENGTH,
         STRIDE,
-        INPUT_SIZE_PER_FRAME,
-        HIDDEN_SIZE,
-        NUM_LAYERS,
         USE_BIDIRECTIONAL,
         USE_FFN_HEAD,
-        FFN_HIDDEN_SIZE,
-        FFN_DROPOUT,
-        set_seed,
+        GaitClassifierLSTM,
         seed_worker,
+        set_seed,
     )
 except ImportError as e:
     print(f"КРИТИЧЕСКАЯ ОШИБКА: Не удалось импортировать зависимости: {e}")
@@ -76,7 +66,6 @@ except ImportError:
 
 if TYPE_CHECKING:
     from pathlib import Path
-    from typing import Union
 
 # === Конфигурация Инференса ===
 

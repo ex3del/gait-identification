@@ -1,20 +1,14 @@
 # ИЗВЛЕЧЕНИЕ RGB ИЗ REALSENSE BAG-ФАЙЛОВ
-from pathlib import Path
 from typing import TYPE_CHECKING
 
-import pyrealsense2 as rs
-import numpy as np
 import cv2
+import numpy as np
+import pyrealsense2 as rs
 
-from .paths.paths import (
-    TRAIN,
-    EVAL,
-    NAMES,
-)
+from .paths.paths import EVAL, NAMES, TRAIN
 
 if TYPE_CHECKING:
     from os import PathLike
-    from pathlib import Path
     from typing import Union
 
 
